@@ -11,6 +11,7 @@ import {
   IconClock,
   IconStar,
   IconLayoutGrid,
+  IconBuildingStore,
   IconSettings,
   IconUserPlus,
   IconSparkles,
@@ -39,6 +40,7 @@ export default function GlobalSidebar() {
     { label: "Home", icon: IconHome, path: "/home" },
     { label: "Favorites", icon: IconStar, path: "/favorites" },
     { label: "Companys", icon: IconLayoutGrid, path: "/spaces" },
+    { label: "Vendors", icon: IconBuildingStore, path: "/vendors" },
     { label: "AI assistant", icon: IconSparkles, path: "/ai" },
   ];
   const { data: favoriteSpacesData, isPending: isFavoritesPending } =
