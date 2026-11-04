@@ -49,11 +49,6 @@ import MovePageModal from "@/features/page/components/move-page-modal.tsx";
 import PageAttachmentsModal from "@/features/attachments/components/page-attachments-modal.tsx";
 import PresentationModal from "@/features/editor/components/presentation/presentation-modal.tsx";
 import { useTimeAgo } from "@/hooks/use-time-ago.tsx";
-import { PageShareModal } from "@/ee/page-permission";
-import {
-  PageVerificationMenuItem,
-  PageVerificationModal,
-} from "@/ee/page-verification";
 import {
   useFavoriteIds,
   useAddFavoriteMutation,
@@ -116,7 +111,6 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
 
       {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
 
-      <PageShareModal readOnly={readOnly} />
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
@@ -165,10 +159,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const [
     movePageModalOpened,
     { open: openMovePageModal, close: closeMoveSpaceModal },
-  ] = useDisclosure(false);
-  const [
-    verificationOpened,
-    { open: openVerificationModal, close: closeVerificationModal },
   ] = useDisclosure(false);
   const [
     attachmentsOpened,
@@ -344,13 +334,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
             </Menu.Item>
           )}
 
-          {!readOnly && !page?.isBase && (
-            <PageVerificationMenuItem
-              pageId={page?.id}
-              onClick={openVerificationModal}
-            />
-          )}
-
           <Menu.Divider />
 
           {!readOnly && (
@@ -441,11 +424,6 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
         open={movePageModalOpened}
       />
 
-      <PageVerificationModal
-        pageId={page.id}
-        opened={verificationOpened}
-        onClose={closeVerificationModal}
-      />
 
       <PageAttachmentsModal
         pageId={page.id}

@@ -77,14 +77,9 @@ api.interceptors.response.use(
 function redirectToLogin() {
   const exemptPaths = [
     APP_ROUTE.AUTH.LOGIN,
-    APP_ROUTE.AUTH.SIGNUP,
     APP_ROUTE.AUTH.FORGOT_PASSWORD,
     APP_ROUTE.AUTH.PASSWORD_RESET,
-    APP_ROUTE.AUTH.MFA_CHALLENGE,
-    APP_ROUTE.AUTH.MFA_SETUP_REQUIRED,
     "/invites",
-    // the oauth consent page redirects to login itself, preserving its query string
-    "/oauth/consent",
   ];
   const { pathname, search, hash } = window.location;
   if (!exemptPaths.some((path) => pathname.startsWith(path))) {

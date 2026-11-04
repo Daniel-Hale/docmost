@@ -3,7 +3,6 @@ import SpaceMembersList from "@/features/space/components/space-members.tsx";
 import AddSpaceMembersModal from "@/features/space/components/add-space-members-modal.tsx";
 import React from "react";
 import SpaceDetails from "@/features/space/components/space-details.tsx";
-import SpaceSecuritySettings from "@/features/space/components/space-security-settings.tsx";
 import PublishSpaceSettings from "@/features/public-space/components/publish-space-settings.tsx";
 import { isPublicSpacesAllowed } from "@/features/public-space/utils/public-space-access.ts";
 import { useSpaceQuery } from "@/features/space/queries/space-query.ts";
@@ -76,11 +75,6 @@ export default function SpaceSettingsModal({
                       {t("Publish")}
                     </Tabs.Tab>
                   )}
-                  {canManageSettings && (
-                    <Tabs.Tab fw={500} value="security">
-                      {t("Security")}
-                    </Tabs.Tab>
-                  )}
                 </Tabs.List>
 
                 <Tabs.Panel value="general">
@@ -112,20 +106,6 @@ export default function SpaceSettingsModal({
                       SpaceCaslSubject.Member,
                     )}
                   />
-                </Tabs.Panel>
-
-                <Tabs.Panel value="security">
-                  <ScrollArea h={580} scrollbarSize={5} pr={8}>
-                    <div style={{ paddingBottom: "100px" }}>
-                      <SpaceSecuritySettings
-                        space={space}
-                        readOnly={spaceAbility.cannot(
-                          SpaceCaslAction.Manage,
-                          SpaceCaslSubject.Settings,
-                        )}
-                      />
-                    </div>
-                  </ScrollArea>
                 </Tabs.Panel>
 
                 <Tabs.Panel value="publish">

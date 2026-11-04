@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { Migrator, FileMigrationProvider } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
+import * as communityAiInitial from '../../core/community-ai/migrations/20261104T010000-community-ai';
 
 @Injectable()
 export class MigrationService {
@@ -25,7 +26,6 @@ export class MigrationService {
 
     if (results && results.length === 0) {
       this.logger.log('No pending database migrations');
-      return;
     }
 
     results?.forEach((it) => {
@@ -41,6 +41,24 @@ export class MigrationService {
     if (error) {
       this.logger.error('Failed to run database migration. Exiting program.');
       this.logger.error(error);
+      process.exit(1);
+    }
+
+    // Keep extension migrations out of the upstream history. Older community
+    // images can then start after rollback without a missing-migration error.
+    const extension = await new Migrator({
+      db: this.db,
+      migrationTableName: 'community_ai_migration',
+      migrationLockTableName: 'community_ai_migration_lock',
+      provider: {
+        getMigrations: async () => ({
+          '20261104T010000-community-ai': communityAiInitial,
+        }),
+      },
+    }).migrateToLatest();
+    if (extension.error) {
+      this.logger.error('Community AI migration failed. Exiting program.');
+      this.logger.error(extension.error);
       process.exit(1);
     }
   }

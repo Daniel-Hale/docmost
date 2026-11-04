@@ -79,11 +79,9 @@ import { PageEditMode } from "@/features/user/types/user.types.ts";
 import { jwtDecode } from "jwt-decode";
 import { searchSpotlight } from "@/features/search/constants.ts";
 import { useEditorScroll } from "./hooks/use-editor-scroll";
-import { EditorAiMenu } from "@/ee/ai/components/editor/ai-menu/ai-menu";
 import { EditorLinkMenu } from "@/features/editor/components/link/link-menu";
 import ColumnsMenu from "@/features/editor/components/columns/columns-menu.tsx";
 import { IntegrationPasteMenu } from "@/features/editor/components/integration-link/integration-paste-menu.tsx";
-import { BasePasteMenu } from "@/features/editor/components/base-embed/base-paste-menu.tsx";
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
@@ -514,7 +512,6 @@ function CollabPageEditor({
 
         {editor && editorIsEditable && (
           <div>
-            <EditorAiMenu editor={editor} />
             <EditorLinkMenu editor={editor} />
             <EditorBubbleMenu editor={editor} />
             <TableMenu editor={editor} />
@@ -528,7 +525,6 @@ function CollabPageEditor({
             <DrawioMenu editor={editor} />
             <ColumnsMenu editor={editor} />
             <IntegrationPasteMenu editor={editor} />
-            <BasePasteMenu editor={editor} />
           </div>
         )}
         {editor && !editorIsEditable && (editable || canComment) && (

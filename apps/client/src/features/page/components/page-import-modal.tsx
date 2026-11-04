@@ -5,14 +5,11 @@ import {
   FileButton,
   Group,
   Text,
-  Tooltip,
 } from "@mantine/core";
 import {
   IconBrandNotion,
   IconCheck,
   IconFileCode,
-  IconFileTypeDocx,
-  IconFileTypePdf,
   IconFileTypeZip,
   IconMarkdown,
   IconX,
@@ -28,12 +25,8 @@ import { buildTree } from "@/features/page/tree/utils";
 import { IPage } from "@/features/page/types/page.types.ts";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConfluenceIcon } from "@/components/icons/confluence-icon.tsx";
 import { getFileImportSizeLimit } from "@/lib/config.ts";
 import { formatBytes } from "@/lib";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { Feature } from "@/ee/features";
-import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 import { getFileTaskById } from "@/features/file-task/services/file-task-service.ts";
 import { queryClient } from "@/main.tsx";
 import { useQueryEmit } from "@/features/websocket/use-query-emit.ts";
@@ -90,16 +83,9 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
 
   const markdownFileRef = useRef<() => void>(null);
   const htmlFileRef = useRef<() => void>(null);
-  const docxFileRef = useRef<() => void>(null);
-  const pdfFileRef = useRef<() => void>(null);
   const notionFileRef = useRef<() => void>(null);
-  const confluenceFileRef = useRef<() => void>(null);
   const zipFileRef = useRef<() => void>(null);
 
-  const canUseConfluence = useHasFeature(Feature.CONFLUENCE_IMPORT);
-  const canUseDocx = useHasFeature(Feature.DOCX_IMPORT);
-  const canUsePdf = useHasFeature(Feature.PDF_IMPORT);
-  const upgradeLabel = useUpgradeLabel();
 
   const handleZipUpload = async (selectedFile: File, source: string) => {
     if (!selectedFile) {
@@ -146,8 +132,6 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       // Reset file input after successful upload
       if (source === "notion" && notionFileRef.current) {
         notionFileRef.current();
-      } else if (source === "confluence" && confluenceFileRef.current) {
-        confluenceFileRef.current();
       } else if (source === "generic" && zipFileRef.current) {
         zipFileRef.current();
       }
@@ -300,8 +284,6 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
       // Reset file inputs after successful upload
       if (markdownFileRef.current) markdownFileRef.current();
       if (htmlFileRef.current) htmlFileRef.current();
-      if (docxFileRef.current) docxFileRef.current();
-      if (pdfFileRef.current) pdfFileRef.current();
 
       const pageCountText =
         pageCount === 1 ? `1 ${t("page")}` : `${pageCount} ${t("pages")}`;
@@ -375,60 +357,6 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
         </FileButton>
 
         <FileButton
-          onChange={handleFileUpload}
-          accept=".docx"
-          multiple
-          resetRef={docxFileRef}
-          inputProps={{
-            "aria-label": t("Choose {{format}} file", { format: "Word (DOCX)" }),
-          }}
-        >
-          {(props) => (
-            <Tooltip
-              label={upgradeLabel}
-              disabled={canUseDocx}
-            >
-              <Button
-                disabled={!canUseDocx}
-                justify="start"
-                variant="default"
-                leftSection={<IconFileTypeDocx size={18} />}
-                {...props}
-              >
-                Word (DOCX)
-              </Button>
-            </Tooltip>
-          )}
-        </FileButton>
-
-        <FileButton
-          onChange={handleFileUpload}
-          accept=".pdf"
-          multiple
-          resetRef={pdfFileRef}
-          inputProps={{
-            "aria-label": t("Choose {{format}} file", { format: "PDF" }),
-          }}
-        >
-          {(props) => (
-            <Tooltip
-              label={upgradeLabel}
-              disabled={canUsePdf}
-            >
-              <Button
-                disabled={!canUsePdf}
-                justify="start"
-                variant="default"
-                leftSection={<IconFileTypePdf size={18} />}
-                {...props}
-              >
-                PDF
-              </Button>
-            </Tooltip>
-          )}
-        </FileButton>
-
-        <FileButton
           onChange={(file) => handleZipUpload(file, "notion")}
           accept="application/zip"
           resetRef={notionFileRef}
@@ -445,31 +373,6 @@ function ImportFormatSelection({ spaceId, onClose }: ImportFormatSelection) {
             >
               Notion
             </Button>
-          )}
-        </FileButton>
-        <FileButton
-          onChange={(file) => handleZipUpload(file, "confluence")}
-          accept="application/zip"
-          resetRef={confluenceFileRef}
-          inputProps={{
-            "aria-label": t("Choose {{format}} file", { format: "Confluence" }),
-          }}
-        >
-          {(props) => (
-            <Tooltip
-              label={upgradeLabel}
-              disabled={canUseConfluence}
-            >
-              <Button
-                disabled={!canUseConfluence}
-                justify="start"
-                variant="default"
-                leftSection={<ConfluenceIcon size={18} />}
-                {...props}
-              >
-                Confluence
-              </Button>
-            </Tooltip>
           )}
         </FileButton>
       </SimpleGrid>

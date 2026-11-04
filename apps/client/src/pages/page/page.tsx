@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom";
 import { usePageQuery } from "@/features/page/queries/page-query";
 import { FullEditor } from "@/features/editor/full-editor";
-import { TitleEditor } from "@/features/editor/title-editor";
 import HistoryModal from "@/features/page-history/components/history-modal";
 import PageHeader from "@/features/page/components/header/page-header.tsx";
 import { extractPageSlugId } from "@/lib";
@@ -16,13 +15,9 @@ import { IconAlertTriangle, IconFileOff } from "@tabler/icons-react";
 import { Button } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
-import { BaseView } from "@/ee/base/components/base-view";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 const MemoizedFullEditor = React.memo(FullEditor);
-const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
 const MemoizedHistoryModal = React.memo(HistoryModal);
 
@@ -69,7 +64,6 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
   useCommentDeepLink(page?.id);
 
-  const hasBases = useHasFeature(Feature.BASES);
   const canEdit = !page?.deletedAt && (page?.permissions?.canEdit ?? false);
   const canComment =
     canEdit ||
@@ -135,32 +129,10 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             paddingInline: 24,
           }}
         >
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <BaseView
-              pageId={page.id}
-              editable={hasBases && canEdit}
-              titleSlot={
-                <div
-                  className="base-page-title"
-                  style={{ paddingTop: 2, paddingBottom: 6 }}
-                >
-                  <MemoizedTitleEditor
-                    pageId={page.id}
-                    slugId={page.slugId}
-                    title={page.title}
-                    spaceSlug={page.space?.slug ?? ""}
-                    editable={hasBases && canEdit}
-                    isBase
-                  />
-                </div>
-              }
+          <div style={{ flex: 1, padding: "24px 0" }}>
+            <EmptyState
+              icon={IconFileOff}
+              title={t("This document contains a premium database block, which is unavailable in this community build. Stored data has been preserved.")}
             />
           </div>
         </div>

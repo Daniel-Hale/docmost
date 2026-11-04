@@ -29,10 +29,12 @@ import { LinearModule } from './integration/providers/linear/linear.module';
 import { FavoriteModule } from './favorite/favorite.module';
 import { SessionModule } from './session/session.module';
 import { ClsMiddleware } from 'nestjs-cls';
+import { CommunityAiModule } from './community-ai/community-ai.module';
 
 @Module({
   imports: [
     UserModule,
+    CommunityAiModule,
     AuthModule,
     WorkspaceModule,
     PageModule,

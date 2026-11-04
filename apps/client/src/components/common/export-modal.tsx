@@ -6,21 +6,13 @@ import {
   Select,
   Switch,
   Divider,
-  Tooltip,
-  Badge,
 } from "@mantine/core";
-import {
-  exportPage,
-  exportPageToDocx,
-} from "@/features/page/services/page-service.ts";
+import { exportPage } from "@/features/page/services/page-service.ts";
 import { useState } from "react";
 import { ExportFormat } from "@/features/page/types/page.types.ts";
 import { notifications } from "@mantine/notifications";
 import { exportSpace } from "@/features/space/services/space-service";
 import { useTranslation } from "react-i18next";
-import { Feature } from "@/ee/features";
-import { useHasFeature } from "@/ee/hooks/use-feature";
-import { useUpgradeLabel } from "@/ee/hooks/use-upgrade-label";
 
 interface ExportModalProps {
   id: string;
@@ -40,25 +32,17 @@ export default function ExportModal({
   const [includeAttachments, setIncludeAttachments] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const { t } = useTranslation();
-  const upgradeLabel = useUpgradeLabel();
-  const isDocx = format === ExportFormat.Docx;
-  const docxEntitled = useHasFeature(Feature.DOCX_EXPORT);
-  const blockedByLicense = isDocx && !docxEntitled;
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
       if (type === "page") {
-        if (format === ExportFormat.Docx) {
-          await exportPageToDocx({ pageId: id });
-        } else {
-          await exportPage({
-            pageId: id,
-            format,
-            includeChildren,
-            includeAttachments,
-          });
-        }
+        await exportPage({
+          pageId: id,
+          format,
+          includeChildren,
+          includeAttachments,
+        });
       }
       if (type === "space") {
         await exportSpace({ spaceId: id, format, includeAttachments });
@@ -107,12 +91,10 @@ export default function ExportModal({
             <ExportFormatSelection
               format={format}
               onChange={handleChange}
-              includeDocx={type === "page"}
-              docxEntitled={docxEntitled}
             />
           </Group>
 
-          {type === "page" && !isDocx && (
+          {type === "page" && (
             <>
               <Divider my="sm" />
 
@@ -164,16 +146,9 @@ export default function ExportModal({
             <Button onClick={onClose} variant="default">
               {t("Cancel")}
             </Button>
-            <Tooltip label={upgradeLabel} disabled={!blockedByLicense} withArrow>
-              <Button
-                onClick={handleExport}
-                loading={isExporting}
-                disabled={blockedByLicense}
-                data-disabled={blockedByLicense || undefined}
-              >
-                {t("Export")}
-              </Button>
-            </Tooltip>
+            <Button onClick={handleExport} loading={isExporting}>
+              {t("Export")}
+            </Button>
           </Group>
         </Modal.Body>
       </Modal.Content>
@@ -184,23 +159,13 @@ export default function ExportModal({
 interface ExportFormatSelection {
   format: ExportFormat;
   onChange: (value: string) => void;
-  includeDocx?: boolean;
-  docxEntitled?: boolean;
 }
-function ExportFormatSelection({
-  format,
-  onChange,
-  includeDocx,
-  docxEntitled,
-}: ExportFormatSelection) {
+function ExportFormatSelection({ format, onChange }: ExportFormatSelection) {
   const { t } = useTranslation();
 
   const data = [
     { value: "markdown", label: "Markdown" },
     { value: "html", label: "HTML" },
-    ...(includeDocx
-      ? [{ value: "docx", label: "Word (.docx)", disabled: !docxEntitled }]
-      : []),
   ];
 
   return (
@@ -213,20 +178,6 @@ function ExportFormatSelection({
       allowDeselect={false}
       withCheckIcon={false}
       aria-label={t("Select export format")}
-      renderOption={({ option }) =>
-        option.value === "docx" && !docxEntitled ? (
-          <div>
-            <Text size="sm" c="dimmed">
-              {option.label}
-            </Text>
-            <Badge size="xs" mt={4}>
-              {t("Enterprise")}
-            </Badge>
-          </div>
-        ) : (
-          <Text size="sm">{option.label}</Text>
-        )
-      }
     />
   );
 }

@@ -21,6 +21,9 @@ export default function Integrations() {
     useAvailableIntegrations();
   const { data: installed, isLoading: loadingInstalled } =
     useInstalledIntegrations();
+  const communityAvailable = available?.filter(
+    (definition) => !definition.requiresFeature,
+  );
   const uninstallMutation = useUninstallIntegration();
 
   const handleInstall = useCallback(
@@ -111,13 +114,13 @@ export default function Integrations() {
 
       {isLoading ? (
         <IntegrationListSkeleton />
-      ) : !available?.length ? (
+      ) : !communityAvailable?.length ? (
         <Text c="dimmed" size="sm">
           {t("No integrations available.")}
         </Text>
       ) : (
         <Stack gap={0}>
-          {available.map((def) => {
+          {communityAvailable.map((def) => {
             const installation = installed?.find((i) => i.type === def.type);
             return (
               <IntegrationRow

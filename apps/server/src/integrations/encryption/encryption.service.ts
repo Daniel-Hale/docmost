@@ -16,6 +16,7 @@ import {
 } from './a256cbc-hs512';
 
 export enum EncryptionPurpose {
+  COMMUNITY_AI = 'community-ai',
   SIEM_CREDENTIALS = 'siem-credentials',
   INTEGRATION_TOKENS = 'integration-tokens',
   OAUTH_COMPLETION = 'oauth-completion',

@@ -10,6 +10,7 @@ import {
   PasswordInput,
   Box,
   Stack,
+  Alert,
 } from "@mantine/core";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -18,7 +19,6 @@ import classes from "@/features/auth/components/auth.module.css";
 import { useGetInvitationQuery } from "@/features/workspace/queries/workspace-query.ts";
 import { useRedirectIfAuthenticated } from "@/features/auth/hooks/use-redirect-if-authenticated.ts";
 import { useTranslation } from "react-i18next";
-import SsoLogin from "@/ee/components/sso-login.tsx";
 import { AuthLayout } from "./auth-layout.tsx";
 
 const formSchema = z.object({
@@ -74,9 +74,11 @@ export function InviteSignUpForm() {
           {t("Join the workspace")}
         </Title>
 
-        <SsoLogin />
-
-        {!invitation.enforceSso && (
+        {invitation.enforceSso ? (
+          <Alert color="yellow">
+            {t("Single sign-on is enforced for this workspace and is unavailable in this community build. Contact your workspace administrator.")}
+          </Alert>
+        ) : (
           <Stack align="stretch" justify="center" gap="xl">
             <form onSubmit={form.onSubmit(onSubmit)}>
               <TextInput

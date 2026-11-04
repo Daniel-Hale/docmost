@@ -679,18 +679,19 @@ export class PagePermissionRepo {
     pageIds: string[];
     userId: string;
     spaceId?: string;
+    trx?: KyselyTransaction;
   }): Promise<string[]> {
     const { pageIds, userId, spaceId } = opts;
     if (pageIds.length === 0) return [];
 
-    if (spaceId) {
+    if (spaceId && !opts.trx) {
       const hasRestrictions = await this.hasRestrictedPagesInSpace(spaceId);
       if (!hasRestrictions) {
         return pageIds;
       }
     }
 
-    const results = await this.db
+    const results = await dbOrTx(this.db, opts.trx)
       .withRecursive('allAncestors', (qb) =>
         qb
           .selectFrom('pages')

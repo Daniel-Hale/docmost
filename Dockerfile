@@ -1,18 +1,40 @@
 FROM node:26-slim AS base
-LABEL org.opencontainers.image.source="https://github.com/docmost/docmost"
+LABEL org.opencontainers.image.source="https://github.com/Daniel-Hale/docmost"
 
 RUN npm install -g pnpm@11.28.2
 
-FROM base AS builder
-
+FROM base AS dependencies
 WORKDIR /app
-
-COPY . .
-
+COPY package.json pnpm*.yaml ./
+COPY patches ./patches
+COPY apps/server/package.json ./apps/server/package.json
+COPY apps/client/package.json ./apps/client/package.json
+COPY packages/editor-ext/package.json ./packages/editor-ext/package.json
+COPY packages/base-formula/package.json ./packages/base-formula/package.json
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
+
+FROM dependencies AS builder
+COPY . .
+RUN test ! -f apps/server/src/ee/ee.module.ts
+# Build sequentially to bound memory on an existing shared Docker host.
+RUN pnpm --filter @docmost/editor-ext build \
+ && pnpm --filter @docmost/base-formula build \
+ && pnpm --filter server build \
+ && pnpm --filter client build
+RUN test ! -d apps/server/dist/ee
+
+FROM builder AS validation
+RUN pnpm --filter server exec jest --runInBand --runTestsByPath \
+    src/core/community-ai/community-ai.service.spec.ts \
+    src/core/community-ai/community-ai.controller.spec.ts \
+    src/core/community-ai/community-ai.retrieval.spec.ts \
+    src/integrations/encryption/encryption.service.spec.ts \
+    src/integrations/encryption/a256cbc-hs512.spec.ts \
+ && pnpm --filter client exec vitest run src/features/community-ai/editor-assist.test.tsx
 
 FROM base AS installer
+ARG VCS_REF
+LABEL org.opencontainers.image.revision=$VCS_REF
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl bash \
@@ -38,7 +60,8 @@ COPY --from=builder /app/apps/server/package.json /app/apps/server/package.json
 # Copy packages
 COPY --from=builder /app/packages/editor-ext/dist /app/packages/editor-ext/dist
 COPY --from=builder /app/packages/editor-ext/package.json /app/packages/editor-ext/package.json
-COPY --from=builder /app/packages/base-formula/dist /app/packages/base-formula/dist
+# Compile-only workspace metadata is needed for the frozen lockfile check.
+# Its commercially licensed implementation is never copied into this stage.
 COPY --from=builder /app/packages/base-formula/package.json /app/packages/base-formula/package.json
 
 # Copy root package files
@@ -53,7 +76,9 @@ RUN chown -R node:node /app
 USER node
 
 # client package.json is only copied for the lockfile check; its deps are bundled in dist
-RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client' && rm -rf /home/node/.cache/pnpm
+RUN pnpm install --frozen-lockfile --prod --filter '!./apps/client' --filter '!./packages/base-formula' \
+ && rm -rf /app/packages/base-formula /home/node/.cache/pnpm \
+ && test ! -d /app/apps/server/dist/ee
 
 RUN mkdir -p /app/data/storage
 
@@ -61,4 +86,6 @@ VOLUME ["/app/data/storage"]
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+ENV NODE_ENV=production
+WORKDIR /app/apps/server
+CMD ["node", "dist/main"]
