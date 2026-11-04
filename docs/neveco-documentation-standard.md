@@ -70,12 +70,12 @@ The assistant cannot check live customer state, validate work or complete checkl
 
 ## Example article
 
-Page title: Synectics — Microsoft 365 — Chrome device sign-in troubleshooting
+Page title: Example Company — Microsoft 365 — Chrome device sign-in troubleshooting
 
 NEVECO / KNOWLEDGE BASE
 
 Document control
-- Customer / company: Synectics
+- Customer / company: Example Company
 - System / vendor: Microsoft 365 / Chrome
 - Owner: [Technician]
 - Status: Draft - not yet verified
