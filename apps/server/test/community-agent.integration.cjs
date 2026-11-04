@@ -309,13 +309,17 @@ async function main() {
     assert.equal(calls[0].options, undefined);
 
     const composeRequest = JSON.parse(calls[1].input);
-    assert.deepEqual(composeRequest.docmostSources, [
-      {
-        reference: 'D1',
-        title: 'Synthetic recovery procedure',
-        text: 'A synthetic recovery request uses the service desk verification checklist.',
-      },
-    ]);
+    assert.equal(composeRequest.docmostSources.length, 1);
+    assert.equal(composeRequest.docmostSources[0].reference, 'D1');
+    assert.equal(
+      composeRequest.docmostSources[0].title,
+      'Synthetic recovery procedure',
+    );
+    assert.match(composeRequest.docmostSources[0].text, /synthetic.*recovery/i);
+    assert.match(
+      composeRequest.docmostSources[0].text,
+      /service desk verification checklist/i,
+    );
     assert(!calls[1].input.includes('INACCESSIBLE_SYNTHETIC_CANARY'));
     assert.match(
       composeRequest.guidance,

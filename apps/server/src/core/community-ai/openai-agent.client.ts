@@ -629,6 +629,19 @@ function parseExternalSources(
       // Ignore malformed links.
     }
   }
+  const bareUrls = /https:\/\/[^\s<>"'\]]+/gi;
+  for (const match of answer.matchAll(bareUrls)) {
+    if (sources.length >= 10) break;
+    const value = match[0].replace(/[.,!?;:]+$/g, '');
+    const candidate = safeSource(value, value);
+    if (!candidate || !provenance.has(candidate.url) || seen.has(candidate.url))
+      continue;
+    seen.add(candidate.url);
+    sources.push({
+      title: cleanLabel(provenance.get(candidate.url), 160) || candidate.title,
+      url: candidate.url,
+    });
+  }
   return sources;
 }
 
@@ -637,8 +650,22 @@ function structuredSources(
 ): Array<{ title: string; url: string }> {
   const found: Array<{ title: string; url: string }> = [];
   let visited = 0;
-  const visit = (node: unknown, depth: number): void => {
+  const visit = (
+    node: unknown,
+    depth: number,
+    parseJsonString = false,
+  ): void => {
     if (depth > 6 || found.length >= 100 || visited++ >= 500) return;
+    if (typeof node === 'string') {
+      if (parseJsonString && Buffer.byteLength(node) <= 200_000) {
+        try {
+          visit(JSON.parse(node), depth + 1);
+        } catch {
+          // Unstructured MCP text is never treated as source provenance.
+        }
+      }
+      return;
+    }
     if (Array.isArray(node)) {
       for (const item of node.slice(0, 100)) visit(item, depth + 1);
       return;
@@ -657,22 +684,24 @@ function structuredSources(
         if (source) found.push(source);
       }
     }
+    if (node.structuredContent) visit(node.structuredContent, depth + 1);
+    if (node.content) visit(node.content, depth + 1);
+    if (node.type === 'text' && typeof node.text === 'string') {
+      visit(node.text, depth + 1, true);
+    }
     for (const [key, child] of Object.entries(node).slice(0, 100)) {
-      if (typeof child === 'object') visit(child, depth + 1);
       if (
-        key === 'text' &&
-        typeof child === 'string' &&
-        Buffer.byteLength(child) <= 200_000
+        key !== '_meta' &&
+        key !== 'structuredContent' &&
+        key !== 'content' &&
+        key !== 'text' &&
+        typeof child === 'object'
       ) {
-        try {
-          visit(JSON.parse(child), depth + 1);
-        } catch {
-          // Unstructured MCP text is never treated as source provenance.
-        }
+        visit(child, depth + 1);
       }
     }
   };
-  visit(value, 0);
+  visit(value, 0, typeof value === 'string');
   return found;
 }
 

@@ -107,12 +107,45 @@ describe('OpenAiAgentClient', () => {
               server_label: 'Microsoft CIPP',
               status: 'completed',
               error: null,
-              output: [
-                {
-                  type: 'text',
-                  text: '{"results":[{"title":"CIPP docs","contentUrl":"https://docs.cipp.app/guide"}]}',
+              output:
+                '{"results":[{"title":"CIPP docs","contentUrl":"https://docs.cipp.app/guide"}]}',
+            },
+            {
+              type: 'mcp_call',
+              turn_id: 'turn_abc123',
+              server_label: 'Microsoft CIPP',
+              status: 'completed',
+              error: null,
+              output: 'Unstructured text [Raw](https://raw.example/doc).',
+            },
+            {
+              type: 'mcp_call',
+              turn_id: 'turn_abc123',
+              server_label: 'Microsoft CIPP',
+              status: 'completed',
+              error: null,
+              output: {
+                _meta: {
+                  noise: Array(600).fill({
+                    url: 'https://metadata.example/irrelevant',
+                  }),
                 },
-              ],
+                content: [
+                  {
+                    type: 'text',
+                    text: '{"results":[{"title":"Conditional Access","contentUrl":"https://learn.microsoft.com/entra/identity/conditional-access/overview"}]}',
+                  },
+                ],
+                structuredContent: {
+                  results: [
+                    {
+                      title: 'Conditional Access',
+                      contentUrl:
+                        'https://learn.microsoft.com/entra/identity/conditional-access/overview',
+                    },
+                  ],
+                },
+              },
             },
             {
               type: 'message',
@@ -123,7 +156,7 @@ describe('OpenAiAgentClient', () => {
               content: [
                 {
                   type: 'output_text',
-                  text: 'Result [CIPP](https://docs.cipp.app/guide) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc).',
+                  text: 'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc).',
                   annotations: [
                     {
                       type: 'url_citation',
@@ -156,10 +189,14 @@ describe('OpenAiAgentClient', () => {
 
     expect(result).toEqual({
       answer:
-        'Result [CIPP](https://docs.cipp.app/guide) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc).',
+        'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc).',
       externalSources: [
-        { title: 'CIPP docs', url: 'https://docs.cipp.app/guide' },
+        {
+          title: 'Conditional Access',
+          url: 'https://learn.microsoft.com/entra/identity/conditional-access/overview',
+        },
         { title: 'Source', url: 'https://example.test/doc' },
+        { title: 'CIPP docs', url: 'https://docs.cipp.app/guide' },
       ],
       toolsUsed: ['Microsoft CIPP'],
     });
