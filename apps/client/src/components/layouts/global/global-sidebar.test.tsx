@@ -106,6 +106,32 @@ describe("global sidebar Company pins", () => {
     expect(screen.getByText("Operations")).toBeTruthy();
   });
 
+  it("renders a separate Vendors navigation and vendor pin section", () => {
+    const existing = pins.pinned;
+    (pins as any).pinned = {
+      id: "pin-vendor",
+      name: "Example Vendor",
+      slug: "example-vendor",
+      logo: null,
+      settings: { nevecoCategory: "vendor" },
+    };
+    try {
+      render(
+        <MantineProvider env="test">
+          <MemoryRouter>
+            <GlobalSidebar />
+          </MemoryRouter>
+        </MantineProvider>,
+      );
+      expect(screen.getByRole("link", { name: "Vendors" }).getAttribute("href")).toBe("/vendors");
+      expect(screen.getByRole("heading", { name: "Pinned Vendors" })).toBeTruthy();
+      expect(screen.getByText("Example Vendor")).toBeTruthy();
+      expect(screen.queryByRole("heading", { name: "Pinned Companys" })).toBeNull();
+    } finally {
+      (pins as any).pinned = existing;
+    }
+  });
+
   it("hides the personal section when every favorite is globally pinned", () => {
     const favorites = pins.favorites;
     pins.favorites = [favorites[0]];
