@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsOptional,
   IsString,
   Matches,
@@ -8,6 +9,11 @@ import {
 import {Transform, TransformFnParams} from "class-transformer";
 
 export class CreateSpaceDto {
+  // Classification is set when the space is created, not inferred from its name.
+  @IsOptional()
+  @IsIn(['company', 'vendor'])
+  category?: 'company' | 'vendor';
+
   @MinLength(2)
   @MaxLength(100)
   @IsString()

@@ -8,6 +8,7 @@ export type IGlobalPin = {
   name: string;
   slug: string;
   logo: string | null;
+  settings?: { nevecoCategory?: 'company' | 'vendor' } | null;
 };
 
 async function getGlobalPins(): Promise<{ items: IGlobalPin[] }> {

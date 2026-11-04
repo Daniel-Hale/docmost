@@ -314,7 +314,7 @@ export class FavoriteRepo {
     return jsonObjectFrom(
       eb
         .selectFrom('spaces')
-        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+        .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo', 'spaces.settings'])
         .whereRef('spaces.id', '=', 'favorites.spaceId'),
     ).as('space');
   }

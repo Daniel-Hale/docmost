@@ -13,13 +13,13 @@ import spaceClasses from "../space-grid.module.css";
 
 const INITIAL_COUNT = 8;
 
-export default function FavoriteSpacesGrid() {
+export default function FavoriteSpacesGrid({ category = 'company' }: { category?: 'company' | 'vendor' }) {
   const { t } = useTranslation();
   const { data } = useFavoritesQuery("space");
   const [expanded, setExpanded] = useState(false);
 
   const allSpaces = (data?.pages.flatMap((p) => p.items) ?? [])
-    .filter((fav) => fav.space)
+    .filter((fav) => fav.space && (fav.space.settings?.nevecoCategory ?? 'company') === category)
     .sort((a, b) => a.space!.name.localeCompare(b.space!.name));
 
   if (allSpaces.length === 0) return null;

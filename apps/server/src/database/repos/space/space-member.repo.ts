@@ -349,12 +349,22 @@ export class SpaceMemberRepo {
       .execute();
   }
 
-  async getUserSpaces(userId: string, pagination: PaginationOptions) {
+  async getUserSpaces(userId: string, pagination: PaginationOptions & { category?: 'company' | 'vendor' }) {
     let query = this.db
       .selectFrom('spaces')
       .selectAll()
       .select((eb) => [this.spaceRepo.withMemberCount(eb)])
       .where('id', 'in', this.getUserSpaceIdsQuery(userId));
+
+    // Filter *before* cursor pagination. The front end must not classify
+    // spaces only by name or filter only the current page of results.
+    if (pagination.category) {
+      query = query.where(
+        sql<string>`coalesce(spaces.settings ->> 'nevecoCategory', 'company')`,
+        '=',
+        pagination.category,
+      ).where('spaces.isPersonal', '=', false);
+    }
 
     if (pagination.query) {
       query = query.where((eb) =>

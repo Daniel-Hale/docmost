@@ -84,6 +84,7 @@ export class SpaceService {
           name: space.name,
           slug: space.slug,
           ...(space.isPersonal ? { isPersonal: true } : {}),
+          category: createSpaceDto.category ?? 'company',
         },
       },
     });
@@ -117,6 +118,7 @@ export class SpaceService {
         workspaceId: workspaceId,
         slug: createSpaceDto.slug,
         isPersonal: options?.isPersonal ?? false,
+        settings: { nevecoCategory: createSpaceDto.category ?? 'company' },
       },
       trx,
     );

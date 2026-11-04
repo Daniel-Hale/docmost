@@ -8,32 +8,35 @@ import { usePaginateAndSearch } from "@/hooks/use-paginate-and-search";
 import useUserRole from "@/hooks/use-user-role";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
 
-export default function Spaces() {
+export default function Spaces({ category = 'company' }: { category?: 'company' | 'vendor' }) {
   const { t } = useTranslation();
   const { isAdmin } = useUserRole();
+  const vendorMode = category === 'vendor';
+  const heading = vendorMode ? 'Vendors' : 'Companys';
   const { search, cursor, goNext, goPrev, handleSearch } = usePaginateAndSearch();
 
   const { data, isLoading } = useGetSpacesQuery({
     cursor,
     limit: 30,
     query: search,
+    category,
   });
 
   return (
     <>
-      <DocumentTitle title={t("Spaces")} />
+      <DocumentTitle title={heading} />
 
       <Container size={"800"} pt="xl">
         <Group justify="space-between" mb="xl">
-          <Title order={1} size="h3">{t("Spaces")}</Title>
-          {isAdmin && <CreateSpaceModal />}
+          <Title order={1} size="h3">{heading}</Title>
+          {isAdmin && <CreateSpaceModal category={category} />}
         </Group>
 
-        <FavoriteSpacesGrid />
+        {!vendorMode && <FavoriteSpacesGrid category="company" />}
 
         <Box>
           <Text size="sm" c="dimmed" mb="md">
-            {t("All spaces")}
+            {vendorMode ? 'Vendors you can access' : 'Companys you can access'}
           </Text>
 
           <AllSpacesList
