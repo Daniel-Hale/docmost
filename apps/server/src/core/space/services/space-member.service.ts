@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
+import { NevecoSpaceListDto } from '../dto/neveco-space-list.dto';
 import { KyselyDB, KyselyTransaction } from '@docmost/db/types/kysely.types';
 import { SpaceMemberRepo } from '@docmost/db/repos/space/space-member.repo';
 import { GroupUserRepo } from '@docmost/db/repos/group/group-user.repo';
@@ -417,7 +418,7 @@ export class SpaceMemberService {
 
   async getUserSpaces(
     userId: string,
-    pagination: PaginationOptions,
+    pagination: NevecoSpaceListDto,
   ): Promise<CursorPaginationResult<Space>> {
     return this.spaceMemberRepo.getUserSpaces(userId, pagination);
   }
