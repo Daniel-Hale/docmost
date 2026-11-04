@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { ScrollArea, Text, Divider, Modal, UnstyledButton } from "@mantine/core";
+import {
+  ScrollArea,
+  Text,
+  Divider,
+  Modal,
+  UnstyledButton,
+} from "@mantine/core";
 import {
   IconHome,
   IconClock,
@@ -21,6 +27,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { WorkspaceInviteForm } from "@/features/workspace/components/members/components/workspace-invite-form";
 import { CustomAvatar } from "@/components/ui/custom-avatar";
 import { AvatarIconType } from "@/features/attachments/types/attachment.types";
+import { useGlobalPinsQuery } from "@/features/space/queries/global-pins-query";
 
 export default function GlobalSidebar() {
   const { t } = useTranslation();
@@ -34,14 +41,31 @@ export default function GlobalSidebar() {
     { label: "Companys", icon: IconLayoutGrid, path: "/spaces" },
     { label: "AI assistant", icon: IconSparkles, path: "/ai" },
   ];
-  const { data: favoriteSpacesData, isPending: isFavoritesPending } = useFavoritesQuery("space");
-  const favoriteSpaces = favoriteSpacesData?.pages.flatMap((p) => p.items) ?? [];
+  const { data: favoriteSpacesData, isPending: isFavoritesPending } =
+    useFavoritesQuery("space");
+  const favoriteSpaces =
+    favoriteSpacesData?.pages.flatMap((p) => p.items) ?? [];
   const sortedFavoriteSpaces = [...favoriteSpaces]
     .filter((fav) => fav.space)
     .sort((a, b) => {
-      const cmp = (a.space!.name ?? "").localeCompare(b.space!.name ?? "", undefined, { sensitivity: "base" });
+      const cmp = (a.space!.name ?? "").localeCompare(
+        b.space!.name ?? "",
+        undefined,
+        { sensitivity: "base" },
+      );
       return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
     });
+  const { data: globalPinsData } = useGlobalPinsQuery();
+  const pinnedSpaces = [...(globalPinsData?.items ?? [])].sort((a, b) => {
+    const cmp = a.name.localeCompare(b.name, undefined, {
+      sensitivity: "base",
+    });
+    return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+  });
+  const pinnedSpaceIds = new Set(pinnedSpaces.map((space) => space.id));
+  const personalFavoriteSpaces = sortedFavoriteSpaces.filter(
+    (favorite) => favorite.space && !pinnedSpaceIds.has(favorite.space.id),
+  );
   const [inviteOpened, { open: openInvite, close: closeInvite }] =
     useDisclosure(false);
 
@@ -60,71 +84,99 @@ export default function GlobalSidebar() {
       <ScrollArea w="100%" style={{ flex: 1 }}>
         <div className={classes.section}>
           {mainNavItems.map((item) => (
-              <Link
-                key={item.label}
-                className={classes.link}
-                data-active={active === item.path || undefined}
-                aria-current={active === item.path ? "page" : undefined}
-                to={item.path}
-                onClick={handleNavClick}
-              >
-                <item.icon className={classes.linkIcon} stroke={2} />
-                <span>{t(item.label)}</span>
-              </Link>
+            <Link
+              key={item.label}
+              className={classes.link}
+              data-active={active === item.path || undefined}
+              aria-current={active === item.path ? "page" : undefined}
+              to={item.path}
+              onClick={handleNavClick}
+            >
+              <item.icon className={classes.linkIcon} stroke={2} />
+              <span>{t(item.label)}</span>
+            </Link>
           ))}
         </div>
 
         <Divider my="xs" />
-        <div className={classes.section}>
-          <Text component="h2" className={classes.sectionHeader}>{t("Favorite spaces")}</Text>
-          {!isFavoritesPending && sortedFavoriteSpaces.length === 0 ? (
-            <Text size="xs" c="dimmed" pl="xs" py={4}>
-              {t("Favorite spaces appear here")}
+        {pinnedSpaces.length > 0 && (
+          <div className={classes.section}>
+            <Text component="h2" className={classes.sectionHeader}>
+              {t("Pinned Companys")}
             </Text>
-          ) : (
-            <>
-              {sortedFavoriteSpaces.slice(0, 10).map((fav) => (
-                <Link
-                  key={fav.id}
-                  className={classes.spaceItem}
-                  to={getSpaceUrl(fav.space!.slug)}
-                  onClick={handleNavClick}
-                >
-                  <CustomAvatar
-                    name={fav.space!.name}
-                    avatarUrl={fav.space!.logo}
-                    type={AvatarIconType.SPACE_ICON}
-                    color="initials"
-                    variant="filled"
-                    size={20}
-                  />
-                  <Text size="sm" fw={500} lineClamp={1}>
-                    {fav.space!.name}
-                  </Text>
-                </Link>
-              ))}
-              {sortedFavoriteSpaces.length > 10 && (
-                <Link
-                  className={classes.spaceItem}
-                  to="/spaces"
-                  onClick={handleNavClick}
-                >
-                  <Text size="xs" c="dimmed">
-                    {t("View all")}
-                  </Text>
-                </Link>
-              )}
-            </>
-          )}
-        </div>
-
+            {pinnedSpaces.map((space) => (
+              <Link
+                key={space.id}
+                className={classes.spaceItem}
+                to={getSpaceUrl(space.slug)}
+                onClick={handleNavClick}
+              >
+                <CustomAvatar
+                  name={space.name}
+                  avatarUrl={space.logo}
+                  type={AvatarIconType.SPACE_ICON}
+                  color="initials"
+                  variant="filled"
+                  size={20}
+                />
+                <Text size="sm" fw={500} lineClamp={1}>
+                  {space.name}
+                </Text>
+              </Link>
+            ))}
+          </div>
+        )}
+        {(personalFavoriteSpaces.length > 0 ||
+          (!isFavoritesPending && sortedFavoriteSpaces.length === 0)) && (
+          <div className={classes.section}>
+            <Text component="h2" className={classes.sectionHeader}>
+              {t("Favorite spaces")}
+            </Text>
+            {personalFavoriteSpaces.length === 0 ? (
+              <Text size="xs" c="dimmed" pl="xs" py={4}>
+                {t("Favorite spaces appear here")}
+              </Text>
+            ) : (
+              <>
+                {personalFavoriteSpaces.slice(0, 10).map((fav) => (
+                  <Link
+                    key={fav.id}
+                    className={classes.spaceItem}
+                    to={getSpaceUrl(fav.space!.slug)}
+                    onClick={handleNavClick}
+                  >
+                    <CustomAvatar
+                      name={fav.space!.name}
+                      avatarUrl={fav.space!.logo}
+                      type={AvatarIconType.SPACE_ICON}
+                      color="initials"
+                      variant="filled"
+                      size={20}
+                    />
+                    <Text size="sm" fw={500} lineClamp={1}>
+                      {fav.space!.name}
+                    </Text>
+                  </Link>
+                ))}
+                {personalFavoriteSpaces.length > 10 && (
+                  <Link
+                    className={classes.spaceItem}
+                    to="/spaces"
+                    onClick={handleNavClick}
+                  >
+                    <Text size="xs" c="dimmed">
+                      {t("View all")}
+                    </Text>
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </ScrollArea>
 
       <div className={classes.bottomSection}>
-        <UnstyledButton
-          className={classes.link}
-          onClick={openInvite}
-        >
+        <UnstyledButton className={classes.link} onClick={openInvite}>
           <IconUserPlus className={classes.linkIcon} stroke={2} />
           <span>{t("Invite People")}</span>
         </UnstyledButton>

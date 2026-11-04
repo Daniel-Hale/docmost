@@ -16,6 +16,7 @@ export interface ISpaceCommentsSettings {
 export interface ISpaceSettings {
   sharing?: ISpaceSharingSettings;
   comments?: ISpaceCommentsSettings;
+  globalPinned?: boolean;
 }
 
 export interface ISpace {

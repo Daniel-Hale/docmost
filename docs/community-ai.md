@@ -20,14 +20,15 @@ is unlocked. Existing database blocks show a preserved-data notice.
 - Editor writing assistance previews suggestions. Applying a suggestion requires
   an explicit click and refuses if the document has changed since selection.
 
-Questions use the existing PostgreSQL full-text index, not a remote vector index.
+Questions use the existing PostgreSQL full-text index and, when enabled, local
+pgvector embeddings through the hybrid retrieval described in
+[semantic search](semantic-search-design.md).
 Retrieval is limited to the authenticated workspace, direct/group company
 memberships, live pages and live companies. Candidate IDs pass the maintained
 inherited page-permission filter before any source text is loaded. Only up to
-eight authorized excerpts are sent, each capped at 4,000 characters. Keyword
-retrieval can miss paraphrases and low-ranked results; use specific product,
-vendor and company names. Semantic embeddings and persistent conversations are
-not part of this first implementation.
+eight authorized excerpts are sent, each capped at 4,000 characters. Semantic
+search is separately opt-in, sends page and query text to OpenAI, and falls back
+to keyword results when unavailable. Persistent conversations are not included.
 
 The assistant is read-only. It cannot operate tools, access arbitrary databases,
 change permissions or save documents. The writing UI applies text only after
@@ -55,7 +56,8 @@ can start after an application-only rollback. It does not alter or remove
 existing content or Enterprise data. Leave these unused tables in place during
 rollback; do not run migration-down as a routine rollback.
 
-Production startup applies both migration histories. For a development database,
+Production startup applies the upstream, community AI and community search
+migration histories. For a development database with pgvector available,
 configure `DATABASE_URL` securely and run
 `pnpm --filter server migration:community:latest` before starting the dev server.
 The original upstream migration commands continue to manage upstream history
@@ -73,8 +75,8 @@ access need a separate check after an administrator supplies a key.
 API implementation reference: [OpenAI text generation](https://developers.openai.com/api/docs/guides/text).
 
 Baseline check limitations: the locked client ESLint query plugin package lacks
-its exported build entrypoint, so client lint cannot start. The upstream
-SearchController scaffold test omits its constructor dependencies and fails at
-test-module creation. These checks are not represented as passing; use the
+its exported build entrypoint, so client lint cannot start. The original
+SearchController scaffold was replaced with focused authenticated and public
+search behavior tests. Client lint is not represented as passing; use the
 production build, targeted permission/crypto/writing tests, bundle audit and
 disposable PostgreSQL integration test for this change.

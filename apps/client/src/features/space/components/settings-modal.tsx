@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAtom } from "jotai";
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
+import GlobalPinSettings from "@/features/space/components/global-pin-settings";
 
 interface SpaceSettingsModalProps {
   spaceId: string;
@@ -80,6 +81,7 @@ export default function SpaceSettingsModal({
                 <Tabs.Panel value="general">
                   <ScrollArea h={580} scrollbarSize={5} pr={8}>
                     <div style={{ paddingBottom: "100px" }}>
+                      {space && <GlobalPinSettings space={space} />}
                       <SpaceDetails
                         spaceId={space?.id}
                         readOnly={spaceAbility.cannot(
