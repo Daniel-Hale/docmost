@@ -6,11 +6,21 @@ export type AiSettings = {
   model: string;
   semanticEnabled: boolean;
   embeddingModel: string;
+  backend: "direct" | "agent";
+  agentId: string | null;
+};
+export type AiAgentAccess = {
+  id: string;
+  name: string | null;
+  model: string;
+  tools: { type: string; label?: string; host?: string }[];
+  notice?: string;
 };
 export type AiMode = "ask" | "summarize" | "improve" | "draft";
 export type AiAnswer = {
   answer: string;
-  sources: { id: string; title: string; url: string }[];
+  sources?: { id: string; title: string; url: string }[];
+  notice?: string;
 };
 export type AiSearchResult = {
   items: {
@@ -39,10 +49,16 @@ export const saveAiSettings = async (settings: {
   model: string;
   semanticEnabled?: boolean;
   embeddingModel?: string;
+  backend?: "direct" | "agent";
+  agentId?: string | null;
   apiKey?: string;
   removeKey?: boolean;
 }): Promise<AiSettings> =>
   (await api.post("/community-ai/settings", settings)).data;
+export const checkAiAgentAccess = async (
+  agentId: string,
+): Promise<AiAgentAccess> =>
+  (await api.post("/community-ai/agent-check", { agentId })).data;
 export const getAiIndexStatus = async (): Promise<AiIndexStatus> =>
   (await api.post("/community-ai/index-status")).data;
 export const refreshAiIndex = async (): Promise<{ queued: boolean }> =>

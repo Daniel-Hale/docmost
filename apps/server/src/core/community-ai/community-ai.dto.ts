@@ -10,6 +10,14 @@ import {
 import { EMBEDDING_MODELS } from './community-embeddings';
 
 export class CommunityAiSettingsDto {
+  @IsOptional()
+  @IsIn(['direct', 'agent'])
+  backend?: 'direct' | 'agent';
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^agent_[A-Za-z0-9]{1,90}$/)
+  agentId?: string | null;
   @IsBoolean()
   enabled: boolean;
 
@@ -34,6 +42,12 @@ export class CommunityAiSettingsDto {
   @IsOptional()
   @IsIn(EMBEDDING_MODELS)
   embeddingModel?: string;
+}
+
+export class CommunityAgentCheckDto {
+  @IsString()
+  @Matches(/^agent_[A-Za-z0-9]{1,90}$/)
+  agentId: string;
 }
 
 export class CommunitySearchDto {

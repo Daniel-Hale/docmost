@@ -29,6 +29,7 @@ import {
   CommunityAiGenerateDto,
   CommunityAiSettingsDto,
   CommunitySearchDto,
+  CommunityAgentCheckDto,
 } from './community-ai.dto';
 
 @Controller('community-ai')
@@ -82,6 +83,20 @@ export class CommunityAiController {
         .cannot(WorkspaceCaslAction.Manage, WorkspaceCaslSubject.Settings)
     )
       throw new ForbiddenException();
+  }
+
+  @Post('agent-check')
+  @HttpCode(200)
+  @UseGuards(UserThrottlerGuard)
+  @SkipThrottle({ ...ALL_NAMED_THROTTLERS_SKIPPED, [AI_CHAT_THROTTLER]: false })
+  @Throttle({ [AI_CHAT_THROTTLER]: { ttl: 60000, limit: 5 } })
+  checkAgent(
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+    @Body() dto: CommunityAgentCheckDto,
+  ) {
+    this.requireAdmin(user, workspace);
+    return this.ai.checkAgent(workspace.id, dto.agentId);
   }
 
   @Post('index-status')

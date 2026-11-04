@@ -4,13 +4,16 @@ import { EncryptionPurpose } from '../../integrations/encryption/encryption.serv
 describe('Community AI safety boundary', () => {
   let service: CommunityAiService;
   let provider: jest.SpyInstance;
+  let agentClient: { run: jest.Mock; inspect: jest.Mock };
   beforeEach(() => {
+    agentClient = { run: jest.fn(), inspect: jest.fn() };
     service = new CommunityAiService(
       {} as any,
       {
         decrypt: jest.fn(() => 'test-only-key'),
       } as any,
       { retrieveSources: jest.fn() } as any,
+      agentClient as any,
     );
     provider = jest.spyOn(global, 'fetch');
   });
@@ -46,6 +49,8 @@ describe('Community AI safety boundary', () => {
       model: 'test-model',
     });
     expect(await service.settings('workspace')).toEqual({
+      backend: 'direct',
+      agentId: null,
       enabled: false,
       configured: true,
       model: 'test-model',
@@ -115,5 +120,210 @@ describe('Community AI safety boundary', () => {
         input: 'draft',
       }),
     ).rejects.toThrow('AI provider request failed (401)');
+  });
+
+  it('routes agent mode only authorized excerpts and returns them with external sources', async () => {
+    jest.spyOn(service as any, 'readConfig').mockResolvedValue({
+      enabled: true,
+      backend: 'agent',
+      agentId: 'agent_synthetic123',
+      encryptedKey: 'encrypted',
+      model: 'test-model',
+    });
+    jest.spyOn(service as any, 'retrieve').mockResolvedValue([
+      {
+        id: 'readable-page',
+        title: 'Synthetic readable guide',
+        text: 'Synthetic allowed evidence.',
+        url: '/s/synthetic/p/readable',
+      },
+    ]);
+    agentClient.run
+      .mockResolvedValueOnce({
+        answer: 'Synthetic public research notes.',
+        externalSources: [
+          {
+            title: 'Synthetic public reference',
+            url: 'https://public.example.invalid/docs',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        answer: 'Synthetic answer [D1].',
+        externalSources: [
+          {
+            title: 'Composer-invented source must be ignored',
+            url: 'https://invented.example.invalid/source',
+          },
+        ],
+      });
+
+    const result = await service.generate('workspace', 'member', {
+      mode: 'ask',
+      input: 'Synthetic question',
+    });
+
+    expect(agentClient.run).toHaveBeenCalledTimes(2);
+    const [key, agentId, input, researchOptions] =
+      agentClient.run.mock.calls[0];
+    expect(key).toBe('test-only-key');
+    expect(agentId).toBe('agent_synthetic123');
+    const request = JSON.parse(input);
+    expect(request.docmostSources).toBeUndefined();
+    expect(request.request).toBe('Synthetic question');
+    expect(input).not.toContain('Synthetic allowed evidence.');
+    expect(researchOptions).toBeUndefined();
+    const [composeKey, composeAgentId, composeInput, composeOptions] =
+      agentClient.run.mock.calls[1];
+    expect(composeKey).toBe('test-only-key');
+    expect(composeAgentId).toBe('agent_synthetic123');
+    expect(composeOptions).toEqual({ disableTools: true });
+    const composition = JSON.parse(composeInput);
+    expect(composition.request).toBe('Synthetic question');
+    expect(composition.researchAnswer).toBe('Synthetic public research notes.');
+    expect(composition.researchSources).toEqual([
+      {
+        title: 'Synthetic public reference',
+        url: 'https://public.example.invalid/docs',
+      },
+    ]);
+    expect(composition.docmostSources).toEqual([
+      {
+        reference: 'D1',
+        title: 'Synthetic readable guide',
+        text: 'Synthetic allowed evidence.',
+      },
+    ]);
+    expect(composeInput).not.toContain('INACCESSIBLE_SYNTHETIC_CANARY');
+    expect(provider).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      answer: 'Synthetic answer [D1].',
+      sources: [
+        {
+          id: 'readable-page',
+          title: 'Synthetic readable guide',
+          url: '/s/synthetic/p/readable',
+        },
+        {
+          id: 'external-1',
+          title: 'Synthetic public reference',
+          url: 'https://public.example.invalid/docs',
+        },
+      ],
+    });
+  });
+
+  it('allows agent-backed questions with no internal matches for its approved public-document tools', async () => {
+    jest.spyOn(service as any, 'readConfig').mockResolvedValue({
+      enabled: true,
+      backend: 'agent',
+      agentId: 'agent_synthetic123',
+      encryptedKey: 'encrypted',
+      model: 'test-model',
+    });
+    jest.spyOn(service as any, 'retrieve').mockResolvedValue([]);
+    agentClient.run.mockResolvedValue({
+      answer: 'Synthetic public documentation answer.',
+      externalSources: [
+        {
+          title: 'Synthetic public reference',
+          url: 'https://public.example.invalid/docs',
+        },
+      ],
+    });
+
+    const result = await service.generate('workspace', 'member', {
+      mode: 'ask',
+      input: 'Synthetic public API question',
+    });
+
+    expect(agentClient.run).toHaveBeenCalledTimes(1);
+    expect(
+      JSON.parse(agentClient.run.mock.calls[0][2]).docmostSources,
+    ).toBeUndefined();
+    expect(agentClient.run.mock.calls[0][3]).toBeUndefined();
+    expect(result.sources).toEqual([
+      {
+        id: 'external-1',
+        title: 'Synthetic public reference',
+        url: 'https://public.example.invalid/docs',
+      },
+    ]);
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('composes writing requests once with tools disabled and no internal excerpts', async () => {
+    jest.spyOn(service as any, 'readConfig').mockResolvedValue({
+      enabled: true,
+      backend: 'agent',
+      agentId: 'agent_synthetic123',
+      encryptedKey: 'encrypted',
+      model: 'test-model',
+    });
+    agentClient.run.mockResolvedValue({ answer: 'Synthetic draft proposal.' });
+
+    const result = await service.generate('workspace', 'member', {
+      mode: 'draft',
+      input: 'Synthetic notes for a procedure.',
+    });
+
+    expect(agentClient.run).toHaveBeenCalledTimes(1);
+    const [, , input, options] = agentClient.run.mock.calls[0];
+    expect(options).toEqual({ disableTools: true });
+    expect(JSON.parse(input).request).toBe('Synthetic notes for a procedure.');
+    expect(JSON.parse(input).docmostSources).toEqual([]);
+    expect(result.answer).toBe('Synthetic draft proposal.');
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('rejects agent citations that do not map to the ACL-filtered source list', async () => {
+    jest.spyOn(service as any, 'readConfig').mockResolvedValue({
+      enabled: true,
+      backend: 'agent',
+      agentId: 'agent_synthetic123',
+      encryptedKey: 'encrypted',
+      model: 'test-model',
+    });
+    jest.spyOn(service as any, 'retrieve').mockResolvedValue([
+      {
+        id: 'readable-page',
+        title: 'Synthetic readable guide',
+        text: 'Synthetic allowed evidence.',
+        url: '/s/synthetic/p/readable',
+      },
+    ]);
+    agentClient.run
+      .mockResolvedValueOnce({ answer: 'Synthetic public research.' })
+      .mockResolvedValueOnce({ answer: 'Unsupported citation [D2].' });
+
+    await expect(
+      service.generate('workspace', 'member', {
+        mode: 'ask',
+        input: 'Synthetic question',
+      }),
+    ).rejects.toThrow(
+      'The agent returned an invalid internal document reference.',
+    );
+    expect(agentClient.run).toHaveBeenCalledTimes(2);
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed enabled agent configuration without contacting an agent', async () => {
+    jest.spyOn(service as any, 'readConfig').mockResolvedValue({
+      enabled: true,
+      backend: 'agent',
+      agentId: null,
+      encryptedKey: 'encrypted',
+      model: 'test-model',
+    });
+
+    await expect(
+      service.generate('workspace', 'member', {
+        mode: 'draft',
+        input: 'Synthetic draft',
+      }),
+    ).rejects.toThrow('Agent ID is not configured');
+    expect(agentClient.run).not.toHaveBeenCalled();
+    expect(provider).not.toHaveBeenCalled();
   });
 });

@@ -136,7 +136,11 @@ async function main() {
       getAppSecret: () => 'synthetic-test-secret-only-not-a-real-credential',
     });
     const search = new CommunityAiSearchService(db,members,permissions,encryption,{embed:()=>{throw new Error('No provider calls')}});
-    const ai = new CommunityAiService(db, encryption, search);
+    const noAgentProvider = {
+      run: async () => { throw new Error('Agent provider is not used by this fixture'); },
+      inspect: async () => { throw new Error('Agent provider is not used by this fixture'); },
+    };
+    const ai = new CommunityAiService(db, encryption, search, noAgentProvider);
     const sources = await ai.retrieve(wa.id, user.id, 'SyntheticVendor');
     assert.deepEqual(
       sources.map((s) => s.id).sort(),
@@ -163,6 +167,8 @@ async function main() {
       [p1.id],
     );
     assert.deepEqual(await ai.settings(wa.id), {
+      backend: 'direct',
+      agentId: null,
       enabled: false,
       configured: false,
       model: 'gpt-5-mini',
@@ -176,6 +182,8 @@ async function main() {
       apiKey: testKey,
     });
     assert.deepEqual(await ai.settings(wa.id), {
+      backend: 'direct',
+      agentId: null,
       enabled: false,
       configured: true,
       model: 'test-model',

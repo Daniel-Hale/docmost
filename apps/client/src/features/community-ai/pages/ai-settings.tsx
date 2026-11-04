@@ -15,7 +15,9 @@ import useUserRole from "@/hooks/use-user-role";
 import SettingsTitle from "@/components/settings/settings-title";
 import { DocumentTitle } from "@/components/ui/document-title";
 import {
+  AiAgentAccess,
   aiError,
+  checkAiAgentAccess,
   getAiIndexStatus,
   getAiSettings,
   refreshAiIndex,
@@ -31,6 +33,8 @@ export default function AiSettingsPage() {
   });
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState("gpt-5-mini");
+  const [backend, setBackend] = useState<"direct" | "agent">("direct");
+  const [agentId, setAgentId] = useState("");
   const [semanticEnabled, setSemanticEnabled] = useState(false);
   const [embeddingModel, setEmbeddingModel] = useState(
     "text-embedding-3-small",
@@ -39,6 +43,9 @@ export default function AiSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [agentAccess, setAgentAccess] = useState<AiAgentAccess>();
+  const [agentAccessError, setAgentAccessError] = useState("");
+  const [checkingAgent, setCheckingAgent] = useState(false);
   const semanticIndexEnabled =
     isAdmin && enabled && query.data?.configured === true && semanticEnabled;
   const hasApiKey = query.data?.configured === true || Boolean(key.trim());
@@ -57,18 +64,28 @@ export default function AiSettingsPage() {
     if (query.data) {
       setEnabled(query.data.enabled);
       setModel(query.data.model);
+      setBackend(query.data.backend ?? "direct");
+      setAgentId(query.data.agentId ?? "");
       setSemanticEnabled(query.data.semanticEnabled);
       setEmbeddingModel(query.data.embeddingModel);
     }
   }, [query.data]);
   const save = async (removeKey = false) => {
+    if (!removeKey && enabled && backend === "agent" && !agentId.trim()) {
+      setError("Enter an agent ID before enabling AI with the agent backend.");
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
+    setAgentAccess(undefined);
+    setAgentAccessError("");
     try {
       await saveAiSettings({
         enabled: removeKey ? false : enabled,
         model,
+        backend,
+        agentId: backend === "agent" ? agentId.trim() || null : null,
         semanticEnabled: removeKey ? false : semanticEnabled,
         embeddingModel,
         apiKey: !removeKey && key.trim() ? key.trim() : undefined,
@@ -83,6 +100,31 @@ export default function AiSettingsPage() {
       setError(aiError(e));
     } finally {
       setBusy(false);
+    }
+  };
+  const savedAgentId = query.data?.agentId ?? "";
+  const canCheckAgent =
+    backend === "agent" &&
+    query.data?.backend === "agent" &&
+    query.data.configured === true &&
+    agentId.trim() === savedAgentId &&
+    Boolean(agentId.trim()) &&
+    !key.trim() &&
+    !busy &&
+    !checkingAgent;
+  const checkAgent = async () => {
+    if (!canCheckAgent) return;
+    setCheckingAgent(true);
+    setAgentAccess(undefined);
+    setAgentAccessError("");
+    try {
+      setAgentAccess(await checkAiAgentAccess(agentId.trim()));
+    } catch {
+      setAgentAccessError(
+        "Could not verify saved agent access. Check the agent ID and configured AI key.",
+      );
+    } finally {
+      setCheckingAgent(false);
     }
   };
   if (!isAdmin)
@@ -110,13 +152,83 @@ export default function AiSettingsPage() {
         onChange={(e) => setEnabled(e.currentTarget.checked)}
         disabled={query.isPending || busy}
       />
-      <TextInput
-        label="OpenAI model"
-        description="Enter a model available to your OpenAI project."
-        value={model}
-        onChange={(e) => setModel(e.currentTarget.value)}
-        maxLength={100}
+      <Select
+        label="AI mode"
+        value={backend}
+        onChange={(value) => {
+          if (!value) return;
+          setBackend(value as "direct" | "agent");
+          setAgentAccess(undefined);
+          setAgentAccessError("");
+        }}
+        data={[
+          { value: "direct", label: "Direct model" },
+          { value: "agent", label: "OpenAI Agent" },
+        ]}
+        allowDeselect={false}
+        disabled={busy}
       />
+      {backend === "direct" ? (
+        <TextInput
+          label="OpenAI model"
+          description="Enter a model available to your OpenAI project."
+          value={model}
+          onChange={(e) => setModel(e.currentTarget.value)}
+          maxLength={100}
+        />
+      ) : (
+        <>
+          <TextInput
+            label="Agent ID"
+            description="Enter the saved agent ID supplied by your administrator."
+            value={agentId}
+            onChange={(event) => {
+              setAgentId(event.currentTarget.value);
+              setAgentAccess(undefined);
+              setAgentAccessError("");
+            }}
+            maxLength={200}
+            disabled={busy || checkingAgent}
+          />
+          <Text size="sm" c="dimmed">
+            The agent defines its model and tools. With Ask, your question may
+            only your question may be sent to configured public documentation
+            MCPs such as Microsoft Learn or CIPP, and to web search. Accessible
+            private Docmost excerpts are sent separately to OpenAI in a
+            tool-free composition; they are never sent to MCP or web tools.
+            Writing notes are sent to OpenAI only and never to MCP or web tools.
+            Checking agent metadata does not guarantee MCP connectivity.
+          </Text>
+          {key.trim() && (
+            <Text size="xs" c="dimmed">
+              Save the replacement key before checking agent access. The check
+              uses only the saved server-side key.
+            </Text>
+          )}
+          <Button
+            variant="light"
+            disabled={!canCheckAgent}
+            loading={checkingAgent}
+            onClick={checkAgent}
+          >
+            Check agent access
+          </Button>
+          {agentAccessError && <Alert color="red">{agentAccessError}</Alert>}
+          {agentAccess && (
+            <Alert color="green" title="Agent access verified">
+              <Text size="sm">
+                {agentAccess.name || agentAccess.id} ({agentAccess.model})
+              </Text>
+              {agentAccess.tools.map((tool, index) => (
+                <Text key={`${tool.type}-${index}`} size="xs">
+                  {tool.label || tool.type}
+                  {tool.host ? ` — ${tool.host}` : ""}
+                </Text>
+              ))}
+            </Alert>
+          )}
+        </>
+      )}
       <PasswordInput
         label={query.data?.configured ? "Replace API key" : "OpenAI API key"}
         description={
@@ -125,7 +237,11 @@ export default function AiSettingsPage() {
             : "You can leave this blank and keep AI disabled until you are ready."
         }
         value={key}
-        onChange={(e) => setKey(e.currentTarget.value)}
+        onChange={(e) => {
+          setKey(e.currentTarget.value);
+          setAgentAccess(undefined);
+          setAgentAccessError("");
+        }}
         autoComplete="new-password"
         maxLength={512}
       />

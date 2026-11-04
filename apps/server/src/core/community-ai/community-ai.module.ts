@@ -6,6 +6,7 @@ import { INDEX_QUEUE, EmbeddingsClient } from './community-embeddings';
 import { CommunityAiSearchService } from './community-ai-search.service';
 import { CommunityAiIndexService } from './community-ai-index.service';
 import { CommunityAiIndexProcessor } from './community-ai-index.processor';
+import { OpenAiAgentClient } from './openai-agent.client';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CommunityAiIndexProcessor } from './community-ai-index.processor';
     CommunityAiIndexService,
     CommunityAiIndexProcessor,
     EmbeddingsClient,
+    OpenAiAgentClient,
   ],
   exports: [CommunityAiSearchService],
 })

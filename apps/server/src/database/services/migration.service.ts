@@ -6,6 +6,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as communityAiInitial from '../../core/community-ai/migrations/20261104T010000-community-ai';
 import * as communitySearchInitial from '../../core/community-ai/migrations/20261104T050000-community-search';
+import * as communityAgentInitial from '../../core/community-ai/migrations/20261104T080000-community-agent';
 
 @Injectable()
 export class MigrationService {
@@ -77,6 +78,21 @@ export class MigrationService {
     if (search.error) {
       this.logger.error('Community search migration failed. Exiting program.');
       this.logger.error(search.error);
+      process.exit(1);
+    }
+    const agent = await new Migrator({
+      db: this.db,
+      migrationTableName: 'community_ai_agent_migration',
+      migrationLockTableName: 'community_ai_agent_migration_lock',
+      provider: {
+        getMigrations: async () => ({
+          '20261104T080000-community-agent': communityAgentInitial,
+        }),
+      },
+    }).migrateToLatest();
+    if (agent.error) {
+      this.logger.error('Community agent migration failed. Exiting program.');
+      this.logger.error(agent.error);
       process.exit(1);
     }
   }

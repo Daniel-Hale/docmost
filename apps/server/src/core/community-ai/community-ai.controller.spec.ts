@@ -14,6 +14,7 @@ describe('Community AI configuration authorization', () => {
       updateSettings: jest.fn(),
       generate: jest.fn(),
       settings: jest.fn(),
+      checkAgent: jest.fn(),
     };
     controller = new CommunityAiController(
       ai,
@@ -58,6 +59,27 @@ describe('Community AI configuration authorization', () => {
     const member = { id: 'member', role: UserRole.MEMBER } as any;
     expect(() => controller.indexRefresh(member, workspace)).toThrow();
     expect(() => controller.indexStatus(member, workspace)).toThrow();
+  });
+  it('rejects ordinary members from checking Agent access before calling the service', () => {
+    expect(() =>
+      controller.checkAgent(
+        { id: 'member', role: UserRole.MEMBER } as any,
+        workspace,
+        { agentId: 'agent_synthetic123' },
+      ),
+    ).toThrow();
+    expect(ai.checkAgent).not.toHaveBeenCalled();
+  });
+  it('checks Agent access only in the authenticated workspace', () => {
+    controller.checkAgent(
+      { id: 'admin-user', role: UserRole.ADMIN } as any,
+      workspace,
+      { agentId: 'agent_synthetic123' },
+    );
+    expect(ai.checkAgent).toHaveBeenCalledWith(
+      'authenticated-workspace',
+      'agent_synthetic123',
+    );
   });
   it('does not take the tenant or identity from the generation body', () => {
     const dto = {

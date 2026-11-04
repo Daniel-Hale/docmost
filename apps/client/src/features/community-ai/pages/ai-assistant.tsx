@@ -125,7 +125,9 @@ export default function AiAssistantPage() {
             isSearch
               ? "Searches automatically with semantic and keyword matching when available. No API key is needed."
               : mode === "ask"
-                ? "Ask a question about accessible Companys, vendors, or products."
+                ? settings?.backend === "agent"
+                  ? "Only your question may be sent to the agent's configured public documentation MCPs, such as Microsoft Learn or CIPP, and to web search. Accessible private Docmost excerpts are sent separately to OpenAI in a tool-free composition and are never sent to MCP or web tools."
+                  : "Ask a question about accessible Companys, vendors, or products."
                 : "Your text will be sent to OpenAI when you click Generate. The result is a draft for you to review and copy; it is not saved automatically."
           }
           autosize
@@ -173,17 +175,16 @@ export default function AiAssistantPage() {
         )}
         {result && (
           <Stack>
+            {result.notice && <Alert>{result.notice}</Alert>}
             <Title order={3}>Suggested answer</Title>
             <Text style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
               {result.answer}
             </Text>
-            {result.sources.length > 0 && (
+            {(result.sources?.length ?? 0) > 0 && (
               <>
                 <Title order={4}>Sources</Title>
-                {result.sources.map((source, i) => (
-                  <Anchor key={source.id} component={Link} to={source.url}>
-                    [{i + 1}] {source.title}
-                  </Anchor>
+                {(result.sources ?? []).map((source, i) => (
+                  <SafeSourceLink key={source.id} source={source} index={i} />
                 ))}
               </>
             )}
@@ -202,4 +203,48 @@ export default function AiAssistantPage() {
       </Stack>
     </Container>
   );
+}
+
+function SafeSourceLink({
+  source,
+  index,
+}: {
+  source: { id: string; title: string; url: string };
+  index: number;
+}) {
+  if (
+    source.url.startsWith("/") &&
+    !source.url.startsWith("//") &&
+    !source.url.includes("\\")
+  ) {
+    try {
+      const destination = new URL(source.url, window.location.origin);
+      if (destination.origin === window.location.origin) {
+        return (
+          <Anchor key={source.id} component={Link} to={source.url}>
+            [{index + 1}] {source.title}
+          </Anchor>
+        );
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const destination = new URL(source.url);
+    if (destination.protocol !== "https:") return null;
+    return (
+      <Anchor
+        key={source.id}
+        href={destination.href}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        [{index + 1}] {source.title}
+      </Anchor>
+    );
+  } catch {
+    return null;
+  }
 }

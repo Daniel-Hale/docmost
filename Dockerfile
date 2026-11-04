@@ -30,12 +30,13 @@ RUN pnpm --filter server exec jest --runInBand --runTestsByPath \
     src/core/community-ai/community-ai.retrieval.spec.ts \
     src/core/community-ai/community-embeddings.spec.ts \
     src/core/community-ai/community-ai-index.service.spec.ts \
+    src/core/community-ai/openai-agent.client.spec.ts \
     src/core/search/search.controller.spec.ts \
     src/core/space/global-pins.spec.ts \
     src/core/space/global-pins.controller.spec.ts \
     src/integrations/encryption/encryption.service.spec.ts \
     src/integrations/encryption/a256cbc-hs512.spec.ts \
- && pnpm --filter client exec vitest run src/features/community-ai/editor-assist.test.tsx src/features/home/components/community-ai-prompt.test.tsx src/features/space/components/global-pin-settings.test.tsx src/components/layouts/global/global-sidebar.test.tsx
+ && pnpm --filter client exec vitest run src/features/community-ai/editor-assist.test.tsx src/features/home/components/community-ai-prompt.test.tsx src/features/space/components/global-pin-settings.test.tsx src/components/layouts/global/global-sidebar.test.tsx src/features/community-ai/pages/ai-settings.test.tsx
 
 FROM base AS installer
 ARG VCS_REF

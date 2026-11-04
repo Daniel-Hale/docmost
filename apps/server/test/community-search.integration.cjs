@@ -174,7 +174,11 @@ async function main() {
       encryption,
       fakeEmbeddings,
     );
-    const communityAi = new CommunityAiService(db, encryption, search);
+    const noAgentProvider = {
+      run: async () => { throw new Error('Agent provider is not used by this fixture'); },
+      inspect: async () => { throw new Error('Agent provider is not used by this fixture'); },
+    };
+    const communityAi = new CommunityAiService(db, encryption, search, noAgentProvider);
     await communityAi.updateSettings(
       workspaceA.id,
       {
@@ -186,6 +190,15 @@ async function main() {
       },
       owner.id,
     );
+    assert.deepEqual(await communityAi.settings(workspaceA.id), {
+      backend: 'direct',
+      agentId: null,
+      enabled: true,
+      model: 'test-model',
+      configured: true,
+      semanticEnabled: true,
+      embeddingModel: EMBEDDING_MODEL,
+    });
     activeGeneration = (
       await sql`select embedding_generation from community_ai_settings where workspace_id = ${workspaceA.id}::uuid`.execute(
         db,
