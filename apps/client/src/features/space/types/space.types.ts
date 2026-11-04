@@ -17,6 +17,7 @@ export interface ISpaceSettings {
   sharing?: ISpaceSharingSettings;
   comments?: ISpaceCommentsSettings;
   globalPinned?: boolean;
+  nevecoCategory?: 'company' | 'vendor';
 }
 
 export interface ISpace {
@@ -35,6 +36,8 @@ export interface ISpace {
   spaceId?: string;
   membership?: IMembership;
   settings?: ISpaceSettings;
+  // Classification is set at creation; category is not a permission boundary.
+  category?: 'company' | 'vendor';
   // for updates
   disablePublicSharing?: boolean;
   allowViewerComments?: boolean;
