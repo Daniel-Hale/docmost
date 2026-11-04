@@ -22,6 +22,7 @@ export type IFavorite = {
     name: string;
     slug: string;
     logo: string | null;
+    settings?: { nevecoCategory?: 'company' | 'vendor' } | null;
   };
   template?: {
     id: string;
