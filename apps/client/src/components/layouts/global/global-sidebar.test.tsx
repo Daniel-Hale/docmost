@@ -35,6 +35,9 @@ vi.mock("jotai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("jotai")>()),
   useAtom: () => [false],
 }));
+vi.mock("@/components/layouts/global/hooks/atoms/sidebar-atom", () => ({
+  mobileSidebarAtom: {},
+}));
 vi.mock("@/components/layouts/global/hooks/hooks/use-toggle-sidebar", () => ({
   useToggleSidebar: () => vi.fn(),
 }));
