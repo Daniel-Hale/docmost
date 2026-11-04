@@ -24,6 +24,7 @@ const {
 const {
   CommunityAiService,
 } = require('../dist/core/community-ai/community-ai.service');
+const { CommunityAiSearchService }=require('../dist/core/community-ai/community-ai-search.service');
 const {
   EncryptionService,
 } = require('../dist/integrations/encryption/encryption.service');
@@ -134,7 +135,8 @@ async function main() {
     const encryption = new EncryptionService({
       getAppSecret: () => 'synthetic-test-secret-only-not-a-real-credential',
     });
-    const ai = new CommunityAiService(db, members, permissions, encryption);
+    const search = new CommunityAiSearchService(db,members,permissions,encryption,{embed:()=>{throw new Error('No provider calls')}});
+    const ai = new CommunityAiService(db, encryption, search);
     const sources = await ai.retrieve(wa.id, user.id, 'SyntheticVendor');
     assert.deepEqual(
       sources.map((s) => s.id).sort(),
@@ -164,6 +166,8 @@ async function main() {
       enabled: false,
       configured: false,
       model: 'gpt-5-mini',
+      semanticEnabled:false,
+      embeddingModel:'text-embedding-3-small',
     });
     const testKey = 'synthetic-test-key-never-sent-to-any-provider';
     await ai.updateSettings(wa.id, {
@@ -175,6 +179,8 @@ async function main() {
       enabled: false,
       configured: true,
       model: 'test-model',
+      semanticEnabled:false,
+      embeddingModel:'text-embedding-3-small',
     });
     const stored = (
       await sql`select encrypted_key from community_ai_settings where workspace_id = ${wa.id}::uuid`.execute(

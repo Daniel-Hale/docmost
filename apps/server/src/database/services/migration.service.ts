@@ -5,6 +5,7 @@ import { Migrator, FileMigrationProvider } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@docmost/db/types/kysely.types';
 import * as communityAiInitial from '../../core/community-ai/migrations/20261104T010000-community-ai';
+import * as communitySearchInitial from '../../core/community-ai/migrations/20261104T050000-community-search';
 
 @Injectable()
 export class MigrationService {
@@ -59,6 +60,23 @@ export class MigrationService {
     if (extension.error) {
       this.logger.error('Community AI migration failed. Exiting program.');
       this.logger.error(extension.error);
+      process.exit(1);
+    }
+    // A separate history lets the previous custom AI image ignore this feature
+    // on app rollback, retaining its existing credentials and settings.
+    const search = await new Migrator({
+      db: this.db,
+      migrationTableName: 'community_ai_search_migration',
+      migrationLockTableName: 'community_ai_search_migration_lock',
+      provider: {
+        getMigrations: async () => ({
+          '20261104T050000-community-search': communitySearchInitial,
+        }),
+      },
+    }).migrateToLatest();
+    if (search.error) {
+      this.logger.error('Community search migration failed. Exiting program.');
+      this.logger.error(search.error);
       process.exit(1);
     }
   }

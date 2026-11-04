@@ -7,11 +7,10 @@ describe('Community AI safety boundary', () => {
   beforeEach(() => {
     service = new CommunityAiService(
       {} as any,
-      {} as any,
-      {} as any,
       {
         decrypt: jest.fn(() => 'test-only-key'),
       } as any,
+      { retrieveSources: jest.fn() } as any,
     );
     provider = jest.spyOn(global, 'fetch');
   });
@@ -50,6 +49,8 @@ describe('Community AI safety boundary', () => {
       enabled: false,
       configured: true,
       model: 'test-model',
+      semanticEnabled: false,
+      embeddingModel: 'text-embedding-3-small',
     });
   });
 

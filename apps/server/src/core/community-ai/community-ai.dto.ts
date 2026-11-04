@@ -7,6 +7,7 @@ import {
   Length,
   Matches,
 } from 'class-validator';
+import { EMBEDDING_MODELS } from './community-embeddings';
 
 export class CommunityAiSettingsDto {
   @IsBoolean()
@@ -25,6 +26,24 @@ export class CommunityAiSettingsDto {
   @IsOptional()
   @IsBoolean()
   removeKey?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  semanticEnabled?: boolean;
+
+  @IsOptional()
+  @IsIn(EMBEDDING_MODELS)
+  embeddingModel?: string;
+}
+
+export class CommunitySearchDto {
+  @IsString()
+  @Length(1, 2000)
+  query: string;
+
+  @IsOptional()
+  @IsUUID()
+  spaceId?: string;
 }
 
 export class CommunityAiGenerateDto {

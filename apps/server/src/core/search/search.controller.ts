@@ -31,6 +31,13 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { ModuleRef } from '@nestjs/core';
 import { PublicSpaceService } from '../public-space/public-space.service';
 import { PageRepo } from '@docmost/db/repos/page/page.repo';
+import { CommunityAiSearchService } from '../community-ai/community-ai-search.service';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../integrations/throttle/user-throttler.guard';
+import {
+  AI_CHAT_THROTTLER,
+  ALL_NAMED_THROTTLERS_SKIPPED,
+} from '../../integrations/throttle/throttler-names';
 
 @UseGuards(JwtAuthGuard)
 @Controller('search')
@@ -44,11 +51,15 @@ export class SearchController {
     private readonly publicSpaceService: PublicSpaceService,
     private readonly pageRepo: PageRepo,
     private moduleRef: ModuleRef,
+    private readonly communitySearch: CommunityAiSearchService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post()
   @OAuthScope('read')
+  @UseGuards(UserThrottlerGuard)
+  @SkipThrottle({ ...ALL_NAMED_THROTTLERS_SKIPPED, [AI_CHAT_THROTTLER]: false })
+  @Throttle({ [AI_CHAT_THROTTLER]: { ttl: 60000, limit: 60 } })
   async pageSearch(
     @Body() searchDto: SearchDTO,
     @AuthUser() user: User,
@@ -65,6 +76,14 @@ export class SearchController {
       if (ability.cannot(SpaceCaslAction.Read, SpaceCaslSubject.Page)) {
         throw new ForbiddenException();
       }
+    }
+
+    if (
+      searchDto.query?.trim() &&
+      !searchDto.titleOnly &&
+      (await this.communitySearch.isSemanticEnabled(workspace.id))
+    ) {
+      return this.communitySearch.searchPages(workspace.id, user.id, searchDto);
     }
 
     if (this.environmentService.getSearchDriver() === 'typesense') {

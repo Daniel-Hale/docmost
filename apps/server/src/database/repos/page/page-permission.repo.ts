@@ -11,7 +11,7 @@ import {
   PagePermission,
 } from '@docmost/db/types/entity.types';
 import { PaginationOptions } from '@docmost/db/pagination/pagination-options';
-import { ExpressionBuilder, sql, SqlBool } from 'kysely';
+import { Expression, ExpressionBuilder, sql, SqlBool } from 'kysely';
 import { GroupRepo } from '@docmost/db/repos/group/group.repo';
 import { DB } from '@docmost/db/types/db';
 import {
@@ -691,7 +691,21 @@ export class PagePermissionRepo {
       }
     }
 
-    const results = await dbOrTx(this.db, opts.trx)
+    const results = await this.accessiblePageIdsQuery(opts).execute();
+    return results.map((r) => r.id);
+  }
+
+  /** Composable read predicate: callers also scope live pages and memberships. */
+  accessiblePageIdsQuery(opts: {
+    pageIds: string[] | Expression<{ id: string }>;
+    userId: string;
+    trx?: KyselyTransaction;
+  }) {
+    const { pageIds, userId } = opts;
+    const candidate = Array.isArray(pageIds)
+      ? sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`
+      : sql<SqlBool>`pages.id in (${pageIds})`;
+    return dbOrTx(this.db, opts.trx)
       .withRecursive('allAncestors', (qb) =>
         qb
           .selectFrom('pages')
@@ -700,7 +714,7 @@ export class PagePermissionRepo {
             'pages.id as ancestorId',
             'pages.parentPageId',
           ])
-          .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+          .where(candidate)
           .unionAll((eb) =>
             eb
               .selectFrom('pages')
@@ -718,7 +732,7 @@ export class PagePermissionRepo {
       )
       .selectFrom('pages')
       .select('pages.id')
-      .where(sql<SqlBool>`pages.id = ANY(${pageIds}::uuid[])`)
+      .where(candidate)
       .where(({ not, exists, selectFrom }) =>
         not(
           exists(
@@ -747,10 +761,7 @@ export class PagePermissionRepo {
               .where('pagePermissions.id', 'is', null),
           ),
         ),
-      )
-      .execute();
-
-    return results.map((r) => r.id);
+      );
   }
 
   async filterAccessiblePageIdsWithPermissions(

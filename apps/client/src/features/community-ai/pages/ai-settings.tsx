@@ -4,16 +4,23 @@ import {
   Button,
   Group,
   PasswordInput,
+  Select,
   Stack,
   Switch,
   Text,
   TextInput,
 } from "@mantine/core";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useUserRole from "@/hooks/use-user-role";
 import SettingsTitle from "@/components/settings/settings-title";
 import { DocumentTitle } from "@/components/ui/document-title";
-import { aiError, getAiSettings, saveAiSettings } from "../api";
+import {
+  aiError,
+  getAiIndexStatus,
+  getAiSettings,
+  refreshAiIndex,
+  saveAiSettings,
+} from "../api";
 
 export default function AiSettingsPage() {
   const { isAdmin } = useUserRole();
@@ -24,14 +31,34 @@ export default function AiSettingsPage() {
   });
   const [enabled, setEnabled] = useState(false);
   const [model, setModel] = useState("gpt-5-mini");
+  const [semanticEnabled, setSemanticEnabled] = useState(false);
+  const [embeddingModel, setEmbeddingModel] = useState(
+    "text-embedding-3-small",
+  );
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const semanticIndexEnabled =
+    isAdmin && enabled && query.data?.configured === true && semanticEnabled;
+  const hasApiKey = query.data?.configured === true || Boolean(key.trim());
+  const indexQuery = useQuery({
+    queryKey: ["community-ai-index-status"],
+    queryFn: getAiIndexStatus,
+    enabled: semanticIndexEnabled,
+    refetchInterval: semanticIndexEnabled ? 10_000 : false,
+  });
+  const refreshMutation = useMutation({
+    mutationFn: refreshAiIndex,
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: ["community-ai-index-status"] }),
+  });
   useEffect(() => {
     if (query.data) {
       setEnabled(query.data.enabled);
       setModel(query.data.model);
+      setSemanticEnabled(query.data.semanticEnabled);
+      setEmbeddingModel(query.data.embeddingModel);
     }
   }, [query.data]);
   const save = async (removeKey = false) => {
@@ -42,6 +69,8 @@ export default function AiSettingsPage() {
       await saveAiSettings({
         enabled: removeKey ? false : enabled,
         model,
+        semanticEnabled: removeKey ? false : semanticEnabled,
+        embeddingModel,
         apiKey: !removeKey && key.trim() ? key.trim() : undefined,
         removeKey,
       });
@@ -102,9 +131,60 @@ export default function AiSettingsPage() {
       />
       <Text size="xs" c="dimmed">
         The key is encrypted on the server. Removing it disables AI. Your
-        documentation stays in this instance; no external document index is
-        created.
+        questions and relevant source excerpts are sent to OpenAI when you ask
+        AI. Semantic search below also sends page text for indexing.
       </Text>
+      <Switch
+        label="Enable semantic search"
+        checked={semanticEnabled}
+        onChange={(e) => setSemanticEnabled(e.currentTarget.checked)}
+        disabled={!enabled || !hasApiKey || busy}
+      />
+      <Select
+        label="Embedding model"
+        value={embeddingModel}
+        onChange={(value) => value && setEmbeddingModel(value)}
+        data={[
+          { value: "text-embedding-3-small", label: "text-embedding-3-small" },
+          { value: "text-embedding-3-large", label: "text-embedding-3-large" },
+        ]}
+        allowDeselect={false}
+        disabled={!enabled || !hasApiKey || busy}
+      />
+      <Text size="xs" c="dimmed">
+        Semantic search sends accessible page text for indexing and your search
+        queries to OpenAI, billed to the configured account. New and changed
+        pages are indexed in the background, usually within about a minute.
+      </Text>
+      {semanticIndexEnabled && (
+        <Stack gap="xs">
+          {indexQuery.error && (
+            <Alert color="red">Could not load semantic index status.</Alert>
+          )}
+          {indexQuery.data && (
+            <Text size="sm">
+              Pages: {indexQuery.data.indexedPages} indexed /{" "}
+              {indexQuery.data.eligiblePages} eligible;{" "}
+              {indexQuery.data.pendingPages} pending;{" "}
+              {indexQuery.data.failedPages} failed.
+              {indexQuery.data.active ? " Semantic indexing is enabled." : ""}
+            </Text>
+          )}
+          {indexQuery.data?.lastError && (
+            <Alert color="red">{indexQuery.data.lastError}</Alert>
+          )}
+          {refreshMutation.error && (
+            <Alert color="red">{aiError(refreshMutation.error)}</Alert>
+          )}
+          <Button
+            variant="light"
+            loading={refreshMutation.isPending}
+            onClick={() => refreshMutation.mutate()}
+          >
+            Refresh embeddings
+          </Button>
+        </Stack>
+      )}
       <Group>
         <Button
           loading={busy}

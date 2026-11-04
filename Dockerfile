@@ -28,9 +28,12 @@ RUN pnpm --filter server exec jest --runInBand --runTestsByPath \
     src/core/community-ai/community-ai.service.spec.ts \
     src/core/community-ai/community-ai.controller.spec.ts \
     src/core/community-ai/community-ai.retrieval.spec.ts \
+    src/core/community-ai/community-embeddings.spec.ts \
+    src/core/community-ai/community-ai-index.service.spec.ts \
+    src/core/search/search.controller.spec.ts \
     src/integrations/encryption/encryption.service.spec.ts \
     src/integrations/encryption/a256cbc-hs512.spec.ts \
- && pnpm --filter client exec vitest run src/features/community-ai/editor-assist.test.tsx
+ && pnpm --filter client exec vitest run src/features/community-ai/editor-assist.test.tsx src/features/home/components/community-ai-prompt.test.tsx
 
 FROM base AS installer
 ARG VCS_REF

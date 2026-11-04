@@ -15,7 +15,12 @@ describe('Community AI configuration authorization', () => {
       generate: jest.fn(),
       settings: jest.fn(),
     };
-    controller = new CommunityAiController(ai, new WorkspaceAbilityFactory());
+    controller = new CommunityAiController(
+      ai,
+      new WorkspaceAbilityFactory(),
+      { search: jest.fn() } as any,
+      { configure: jest.fn(), status: jest.fn(), refresh: jest.fn() } as any,
+    );
   });
   it('requires interactive JWT authentication on all routes', () => {
     expect(
@@ -37,7 +42,7 @@ describe('Community AI configuration authorization', () => {
   it.each([UserRole.ADMIN, UserRole.OWNER])(
     'allows %s settings for the authenticated workspace only',
     (role) => {
-      controller.settings({ role } as any, workspace, {
+      controller.settings({ role, id: 'admin-user' } as any, workspace, {
         enabled: false,
         model: 'test',
         workspaceId: 'injected',
@@ -45,9 +50,15 @@ describe('Community AI configuration authorization', () => {
       expect(ai.updateSettings).toHaveBeenCalledWith(
         'authenticated-workspace',
         expect.objectContaining({ model: 'test' }),
+        'admin-user',
       );
     },
   );
+  it('rejects ordinary members from indexing and index-status metadata', () => {
+    const member = { id: 'member', role: UserRole.MEMBER } as any;
+    expect(() => controller.indexRefresh(member, workspace)).toThrow();
+    expect(() => controller.indexStatus(member, workspace)).toThrow();
+  });
   it('does not take the tenant or identity from the generation body', () => {
     const dto = {
       mode: 'ask',
