@@ -64,6 +64,12 @@ export default function GlobalSidebar() {
     });
     return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
   });
+  const pinnedCompanySpaces = pinnedSpaces.filter(
+    (space) => (space.settings?.nevecoCategory ?? 'company') === 'company',
+  );
+  const pinnedVendorSpaces = pinnedSpaces.filter(
+    (space) => space.settings?.nevecoCategory === 'vendor',
+  );
   const pinnedSpaceIds = new Set(pinnedSpaces.map((space) => space.id));
   const personalFavoriteSpaces = sortedFavoriteSpaces.filter(
     (favorite) => favorite.space && !pinnedSpaceIds.has(favorite.space.id),
@@ -101,12 +107,39 @@ export default function GlobalSidebar() {
         </div>
 
         <Divider my="xs" />
-        {pinnedSpaces.length > 0 && (
+        {pinnedCompanySpaces.length > 0 && (
           <div className={classes.section}>
             <Text component="h2" className={classes.sectionHeader}>
               {t("Pinned Companys")}
             </Text>
-            {pinnedSpaces.map((space) => (
+            {pinnedCompanySpaces.map((space) => (
+              <Link
+                key={space.id}
+                className={classes.spaceItem}
+                to={getSpaceUrl(space.slug)}
+                onClick={handleNavClick}
+              >
+                <CustomAvatar
+                  name={space.name}
+                  avatarUrl={space.logo}
+                  type={AvatarIconType.SPACE_ICON}
+                  color="initials"
+                  variant="filled"
+                  size={20}
+                />
+                <Text size="sm" fw={500} lineClamp={1}>
+                  {space.name}
+                </Text>
+              </Link>
+            ))}
+          </div>
+        )}
+        {pinnedVendorSpaces.length > 0 && (
+          <div className={classes.section}>
+            <Text component="h2" className={classes.sectionHeader}>
+              Pinned Vendors
+            </Text>
+            {pinnedVendorSpaces.map((space) => (
               <Link
                 key={space.id}
                 className={classes.spaceItem}
