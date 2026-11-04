@@ -85,6 +85,7 @@ import { IntegrationPasteMenu } from "@/features/editor/components/integration-l
 import { getInstalledIntegrations } from "@/features/integration/services/integration-service";
 import { TransclusionLookupProvider } from "@/features/editor/components/transclusion/transclusion-lookup-context";
 import { useTranslation } from "react-i18next";
+import NevecoTemplatePicker from "@/features/neveco-templates/template-picker";
 import {
   acquireCollabSocket,
   getCollabSocket,
@@ -415,6 +416,11 @@ function CollabPageEditor({
     },
   });
 
+  const editorIsEmpty = useEditorState({
+    editor,
+    selector: (ctx) => ctx.editor?.isEmpty ?? false,
+  });
+
   const handleActiveCommentEvent = (event) => {
     const { commentId, resolved } = event.detail;
 
@@ -503,6 +509,10 @@ function CollabPageEditor({
   return (
     <div className="editor-container" style={{ position: "relative" }}>
       <div ref={menuContainerRef}>
+        {editor && editorIsEditable && editorIsEmpty && isSynced &&
+          yjsConnectionStatus === WebSocketStatus.Connected && (
+            <NevecoTemplatePicker editor={editor} connected={true} />
+          )}
         <EditorContent editor={editor} />
 
         {editor && (
