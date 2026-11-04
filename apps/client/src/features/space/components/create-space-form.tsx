@@ -24,7 +24,7 @@ const formSchema = z.object({
 });
 type FormValues = z.infer<typeof formSchema>;
 
-export function CreateSpaceForm() {
+export function CreateSpaceForm({ category = 'company' }: { category?: 'company' | 'vendor' }) {
   const { t } = useTranslation();
   const createSpaceMutation = useCreateSpaceMutation();
   const navigate = useNavigate();
@@ -63,6 +63,7 @@ export function CreateSpaceForm() {
       name: data.name,
       slug: data.slug,
       description: data.description,
+      category,
     };
 
     const createdSpace = await createSpaceMutation.mutateAsync(spaceData);
@@ -93,7 +94,7 @@ export function CreateSpaceForm() {
               withAsterisk
               id="name"
               label={t("Space name")}
-              placeholder={t("e.g Product Team")}
+              placeholder={category === 'vendor' ? 'e.g. Microsoft' : 'e.g. Example Company'}
               variant="filled"
               data-autofocus
               errorProps={{ role: "alert" }}
