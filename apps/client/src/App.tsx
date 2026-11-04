@@ -120,7 +120,8 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path={"/home"} element={<Home />} />
           <Route path={"/ai"} element={<AiAssistant />} />
-          <Route path={"/spaces"} element={<SpacesPage />} />
+          <Route path={"/spaces"} element={<SpacesPage category="company" />} />
+          <Route path={"/vendors"} element={<SpacesPage category="vendor" />} />
           <Route path={"/favorites"} element={<FavoritesPage />} />
           <Route path={"/labels/:labelName"} element={<LabelPage />} />
           <Route path={"/s/:spaceSlug"} element={<SpaceHome />} />
