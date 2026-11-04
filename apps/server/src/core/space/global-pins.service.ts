@@ -38,13 +38,14 @@ export class GlobalPinsService {
       name: string;
       slug: string;
       logo: string | null;
+      settings?: unknown;
     }>;
   }> {
     const items = await this.db
       .selectFrom('spaces')
       .innerJoin('spaceMembers', 'spaceMembers.spaceId', 'spaces.id')
       .innerJoin('groups', 'groups.id', 'spaceMembers.groupId')
-      .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo'])
+      .select(['spaces.id', 'spaces.name', 'spaces.slug', 'spaces.logo', 'spaces.settings'])
       .where('spaces.id', 'in', this.members.getUserSpaceIdsQuery(userId))
       .where('spaces.workspaceId', '=', workspaceId)
       .where('spaces.deletedAt', 'is', null)
