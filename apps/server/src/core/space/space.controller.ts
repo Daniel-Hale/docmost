@@ -35,6 +35,7 @@ import {
 } from '../casl/interfaces/workspace-ability.type';
 import WorkspaceAbilityFactory from '../casl/abilities/workspace-ability.factory';
 import { CreateSpaceDto } from './dto/create-space.dto';
+import { NevecoSpaceListDto } from './dto/neveco-space-list.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('spaces')
@@ -52,7 +53,7 @@ export class SpaceController {
   @OAuthScope('read')
   async getWorkspaceSpaces(
     @Body()
-    pagination: PaginationOptions,
+    pagination: NevecoSpaceListDto,
     @AuthUser() user: User,
   ) {
     const result = await this.spaceMemberService.getUserSpaces(
