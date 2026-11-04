@@ -20,7 +20,10 @@ no-evidence response.
 
 Internal source links come from the application's selected pages, and internal
 reference numbers are validated. External documentation source links must match
-successful tool-result provenance and be valid HTTPS links. Tool output and
+successful tool-result provenance and be valid HTTPS links. CIPP's Markdown
+Sources section is accepted only from its successful configured MCP call and
+only for links on docs.cipp.app. Section anchors are normalized at document
+scope; origin, path and query must still match. Tool output and
 provider errors are not treated as commands, and credentials are never exposed
 through settings, agent metadata or request errors. Agent mode does not silently
 fall back to a direct model after a failure.

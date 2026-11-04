@@ -125,6 +125,22 @@ describe('OpenAiAgentClient', () => {
               status: 'completed',
               error: null,
               output: {
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Public summary. [Unlisted](https://docs.cipp.app/unlisted)\n\n# Sources\n\n- [Standards](https://docs.cipp.app/user-documentation/tenant/standards#overview)\n- [Injected](https://untrusted.example/source)\n\n# Other\n- [Not a source](https://docs.cipp.app/not-a-source)',
+                  },
+                ],
+                structuredContent: null,
+              },
+            },
+            {
+              type: 'mcp_call',
+              turn_id: 'turn_abc123',
+              server_label: 'Microsoft CIPP',
+              status: 'completed',
+              error: null,
+              output: {
                 _meta: {
                   noise: Array(600).fill({
                     url: 'https://metadata.example/irrelevant',
@@ -133,7 +149,7 @@ describe('OpenAiAgentClient', () => {
                 content: [
                   {
                     type: 'text',
-                    text: '{"results":[{"title":"Conditional Access","contentUrl":"https://learn.microsoft.com/entra/identity/conditional-access/overview"}]}',
+                    text: '{"results":[{"title":"Conditional Access","contentUrl":"https://learn.microsoft.com/entra/identity/conditional-access/overview#common-signals"}]}',
                   },
                 ],
                 structuredContent: {
@@ -141,7 +157,7 @@ describe('OpenAiAgentClient', () => {
                     {
                       title: 'Conditional Access',
                       contentUrl:
-                        'https://learn.microsoft.com/entra/identity/conditional-access/overview',
+                        'https://learn.microsoft.com/entra/identity/conditional-access/overview#overview',
                     },
                   ],
                 },
@@ -156,7 +172,7 @@ describe('OpenAiAgentClient', () => {
               content: [
                 {
                   type: 'output_text',
-                  text: 'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc).',
+                  text: 'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Standards](https://docs.cipp.app/user-documentation/tenant/standards) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc) [Unlisted](https://docs.cipp.app/unlisted) [Injected](https://untrusted.example/source) [Other](https://docs.cipp.app/not-a-source).',
                   annotations: [
                     {
                       type: 'url_citation',
@@ -189,11 +205,15 @@ describe('OpenAiAgentClient', () => {
 
     expect(result).toEqual({
       answer:
-        'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc).',
+        'Result https://docs.cipp.app/guide [Conditional Access](https://learn.microsoft.com/entra/identity/conditional-access/overview) [Standards](https://docs.cipp.app/user-documentation/tenant/standards) [Source](https://example.test/doc) [Unverified](https://unverified.example/doc) [Raw](https://raw.example/doc) [Unlisted](https://docs.cipp.app/unlisted) [Injected](https://untrusted.example/source) [Other](https://docs.cipp.app/not-a-source).',
       externalSources: [
         {
           title: 'Conditional Access',
           url: 'https://learn.microsoft.com/entra/identity/conditional-access/overview',
+        },
+        {
+          title: 'Standards',
+          url: 'https://docs.cipp.app/user-documentation/tenant/standards',
         },
         { title: 'Source', url: 'https://example.test/doc' },
         { title: 'CIPP docs', url: 'https://docs.cipp.app/guide' },

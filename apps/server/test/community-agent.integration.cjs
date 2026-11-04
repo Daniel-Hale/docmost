@@ -323,7 +323,7 @@ async function main() {
     assert(!calls[1].input.includes('INACCESSIBLE_SYNTHETIC_CANARY'));
     assert.match(
       composeRequest.guidance,
-      /never send private internal excerpts/i,
+      /private-document composition with all external tools disabled/i,
     );
     assert.equal(composeRequest.request, 'Synthetic recovery procedure');
     assert.equal(

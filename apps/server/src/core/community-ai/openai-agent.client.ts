@@ -161,7 +161,17 @@ export class OpenAiAgentClient {
               item.error == null &&
               item.turn_id === completed.id,
           )
-          .flatMap((item) => structuredSources(item.output ?? item.result)),
+          .flatMap((item) => [
+            ...structuredSources(item.output ?? item.result),
+            ...(tools.some(
+              (tool) =>
+                tool.type === 'mcp' &&
+                tool.label === item.server_label &&
+                tool.host === 'docs.cipp.app',
+            )
+              ? cippMarkdownSources(item.output ?? item.result)
+              : []),
+          ]),
       ]);
       result = {
         answer,
@@ -705,6 +715,36 @@ function structuredSources(
   return found;
 }
 
+function cippMarkdownSources(
+  value: unknown,
+): Array<{ title: string; url: string }> {
+  if (!isRecord(value) || !Array.isArray(value.content)) return [];
+  const found: Array<{ title: string; url: string }> = [];
+  for (const part of value.content.slice(0, 20)) {
+    if (
+      !isRecord(part) ||
+      part.type !== 'text' ||
+      typeof part.text !== 'string' ||
+      Buffer.byteLength(part.text) > 200_000
+    )
+      continue;
+    const heading = /^#{1,6}[ \t]+Sources[ \t]*\r?$/im.exec(part.text);
+    if (!heading) continue;
+    const section = part.text
+      .slice(heading.index + heading[0].length)
+      .split(/^#{1,6}[ \t]+/m, 1)[0];
+    for (const match of section.matchAll(
+      /^\s*[-*]\s+\[([^\]\r\n]{1,200})\]\((https:\/\/[^\s)<>]{1,2048})\)/gm,
+    )) {
+      const source = safeSource(match[1], match[2]);
+      if (source && new URL(source.url).origin === 'https://docs.cipp.app')
+        found.push(source);
+      if (found.length >= 20) return found;
+    }
+  }
+  return found;
+}
+
 function safeSource(
   title: unknown,
   value: unknown,
@@ -720,6 +760,9 @@ function safeSource(
     ) {
       return undefined;
     }
+    // Section anchors identify the same retrieved document. Keep the origin,
+    // path and query exact, while comparing citations at document scope.
+    url.hash = '';
     return { title: cleanLabel(title, 160), url: url.toString() };
   } catch {
     return undefined;
